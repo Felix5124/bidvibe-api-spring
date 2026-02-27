@@ -22,11 +22,13 @@ import lombok.Getter;
 public class ApiResponse<T> {
 
     private final boolean success;
+    private final Integer errorCode;
     private final String message;
     private final T data;
 
-    private ApiResponse(boolean success, String message, T data) {
+    private ApiResponse(boolean success, Integer errorCode, String message, T data) {
         this.success = success;
+        this.errorCode = errorCode;
         this.message = message;
         this.data = data;
     }
@@ -36,18 +38,22 @@ public class ApiResponse<T> {
     // ------------------------------------------------------------------
 
     public static <T> ApiResponse<T> ok(T data) {
-        return new ApiResponse<>(true, "OK", data);
+        return new ApiResponse<>(true, null, "OK", data);
     }
 
     public static <T> ApiResponse<T> ok(String message, T data) {
-        return new ApiResponse<>(true, message, data);
+        return new ApiResponse<>(true, null, message, data);
     }
 
     public static <T> ApiResponse<T> created(T data) {
-        return new ApiResponse<>(true, "Created", data);
+        return new ApiResponse<>(true, null, "Created", data);
     }
 
     public static ApiResponse<Void> error(String message) {
-        return new ApiResponse<>(false, message, null);
+        return new ApiResponse<>(false, null, message, null);
+    }
+
+    public static ApiResponse<Void> error(int errorCode, String message) {
+        return new ApiResponse<>(false, errorCode, message, null);
     }
 }

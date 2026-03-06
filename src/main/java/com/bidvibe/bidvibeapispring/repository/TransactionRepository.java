@@ -17,19 +17,19 @@ public interface TransactionRepository extends JpaRepository<Transaction, UUID> 
     /**
      * Lịch sử giao dịch của ví, mới nhất trước (/api/wallet/history).
      */
-    Page<Transaction> findByWalletIdOrderByTimestampDesc(UUID walletId, Pageable pageable);
+    Page<Transaction> findByWalletIdOrderByCreatedAtDesc(UUID walletId, Pageable pageable);
 
     /**
      * Lọc theo loại giao dịch (DEPOSIT, WITHDRAW, …).
      */
-    Page<Transaction> findByWalletIdAndTypeOrderByTimestampDesc(
+    Page<Transaction> findByWalletIdAndTypeOrderByCreatedAtDesc(
             UUID walletId, Transaction.Type type, Pageable pageable);
 
     /**
      * Tất cả giao dịch PENDING cần Admin duyệt (/api/admin/finance/approve).
      * Ưu tiên DEPOSIT và WITHDRAW.
      */
-    List<Transaction> findByTypeInAndStatusOrderByTimestampAsc(
+    List<Transaction> findByTypeInAndStatusOrderByCreatedAtAsc(
             List<Transaction.Type> types, Transaction.Status status);
 
     /**
@@ -41,7 +41,7 @@ public interface TransactionRepository extends JpaRepository<Transaction, UUID> 
             WHERE t.wallet.id = :walletId
               AND (:type IS NULL OR t.type = :type)
               AND (:status IS NULL OR t.status = :status)
-            ORDER BY t.timestamp DESC
+            ORDER BY t.createdAt DESC
             """)
     Page<Transaction> findByWalletFiltered(
             @Param("walletId") UUID walletId,
@@ -64,8 +64,20 @@ public interface TransactionRepository extends JpaRepository<Transaction, UUID> 
                     AND t2.type = 'BID_UNLOCK'
                     AND t2.status = 'COMPLETED'
               )
-            ORDER BY t.timestamp DESC
+            ORDER BY t.createdAt DESC
             """)
     List<Transaction> findUnresolvedBidLocks(@Param("userId") UUID userId);
+
+    /** Admin – danh sách toàn bộ giao dịch, lọc tuỳ chọn theo type/status. */
+    @Query("""
+            SELECT t FROM Transaction t
+            WHERE (:type IS NULL OR t.type = :type)
+              AND (:status IS NULL OR t.status = :status)
+            ORDER BY t.createdAt DESC
+            """)
+    Page<Transaction> findAllFiltered(
+            @Param("type") Transaction.Type type,
+            @Param("status") Transaction.Status status,
+            Pageable pageable);
 }
 

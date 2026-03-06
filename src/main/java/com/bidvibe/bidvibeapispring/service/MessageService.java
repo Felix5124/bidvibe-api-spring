@@ -79,7 +79,7 @@ public class MessageService {
     @Transactional(readOnly = true)
     public List<MessageResponse> getLiveChatHistory(UUID auctionId) {
         return messageRepository
-                .findByAuctionIdAndReceiverIsNullOrderByTimestampAsc(auctionId)
+                .findByAuctionIdAndReceiverIsNullOrderByCreatedAtAsc(auctionId)
                 .stream().map(MessageResponse::from).toList();
     }
 
@@ -103,7 +103,7 @@ public class MessageService {
                 .receiverId(receiverId)
                 .auctionId(auctionId)
                 .content(msg.getContent())
-                .timestamp(msg.getTimestamp())
+                .timestamp(msg.getCreatedAt())
                 .build();
 
         if (auctionId != null) {

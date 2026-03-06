@@ -1,6 +1,5 @@
 package com.bidvibe.bidvibeapispring.dto.item;
 
-import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
@@ -27,10 +26,11 @@ public class ItemResponse {
     private String name;
     private String description;
     private List<String> imageUrls;
+    private List<String> tags;
     private Item.Rarity rarity;
     private Item.Status status;
-    private BigDecimal askingPrice;
     private Instant cooldownUntil;
+    private Instant createdAt;
 
     /** Người ký gửi ban đầu. */
     private UserSummary seller;
@@ -48,10 +48,11 @@ public class ItemResponse {
                 .name(item.getName())
                 .description(item.getDescription())
                 .imageUrls(item.getImageUrls())
+                .tags(item.getTags())
                 .rarity(item.getRarity())
                 .status(item.getStatus())
-                .askingPrice(item.getAskingPrice())
                 .cooldownUntil(item.getCooldownUntil())
+                .createdAt(item.getCreatedAt())
                 .seller(item.getSeller() != null ? UserSummary.builder()
                         .id(item.getSeller().getId())
                         .nickname(item.getSeller().getNickname())

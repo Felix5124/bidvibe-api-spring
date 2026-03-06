@@ -14,6 +14,7 @@ import java.util.UUID;
 /**
  * Request body cho POST /api/users/rate.
  * Đánh giá sao và nhận xét sau giao dịch thành công.
+ * Phải đặt đúng một trong hai: auctionId hoặc marketListingId.
  */
 @Getter
 @Setter
@@ -23,8 +24,11 @@ public class CreateRatingRequest {
     @NotNull(message = "ID người được đánh giá không được để trống")
     private UUID toUserId;
 
-    @NotNull(message = "ID phiên đấu giá không được để trống")
+    /** Đặt nếu đánh giá sau đấu giá. */
     private UUID auctionId;
+
+    /** Đặt nếu đánh giá sau giao dịch Chợ Đen. */
+    private UUID marketListingId;
 
     @NotNull(message = "Số sao không được để trống")
     @Min(value = AppConstants.MIN_RATING_STARS, message = "Số sao tối thiểu là 1")

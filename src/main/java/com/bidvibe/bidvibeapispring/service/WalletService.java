@@ -202,13 +202,32 @@ public class WalletService {
     // Transaction history
     // ------------------------------------------------------------------
 
-    /** GET /api/wallet/history */
+    /** GET /api/wallet/transactions – lịch sử có lọc type + status. */
+    @Transactional(readOnly = true)
+    public Page<TransactionResponse> getHistory(UUID userId, Transaction.Type type,
+                                                Transaction.Status status, Pageable pageable) {
+        Wallet wallet = findWalletByUserId(userId);
+        return transactionRepository
+                .findByWalletFiltered(wallet.getId(), type, status, pageable)
+                .map(TransactionResponse::from);
+    }
+
+    /** GET /api/wallet/transactions – không lọc. */
     @Transactional(readOnly = true)
     public Page<TransactionResponse> getHistory(UUID userId, Pageable pageable) {
         Wallet wallet = findWalletByUserId(userId);
         return transactionRepository
-                .findByWalletIdOrderByTimestampDesc(wallet.getId(), pageable)
+                .findByWalletIdOrderByCreatedAtDesc(wallet.getId(), pageable)
                 .map(TransactionResponse::from);
+    }
+
+    /** Admin từ chối Deposit (không đổi balance vì chưa credit vào). */
+    @Transactional
+    public TransactionResponse rejectDeposit(UUID transactionId) {
+        Transaction tx = findTransactionById(transactionId);
+        validatePending(tx);
+        tx.setStatus(Transaction.Status.CANCELLED);
+        return TransactionResponse.from(transactionRepository.save(tx));
     }
 
     // ------------------------------------------------------------------

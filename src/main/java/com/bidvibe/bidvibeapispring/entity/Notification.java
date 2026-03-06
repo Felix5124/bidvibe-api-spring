@@ -16,6 +16,10 @@ import java.util.UUID;
 @Builder
 public class Notification {
 
+    public enum Type {
+        OUTBID, AUCTION_WON, WATCHLIST_ALERT, FINANCE, MODERATION, ITEM_REJECTED
+    }
+
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
@@ -24,10 +28,14 @@ public class Notification {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private Type type;
+
     @Column(nullable = false)
     private String title;
 
-    @Column(columnDefinition = "TEXT")
+    @Column(columnDefinition = "TEXT", nullable = false)
     private String content;
 
     @Column(name = "is_read", nullable = false)

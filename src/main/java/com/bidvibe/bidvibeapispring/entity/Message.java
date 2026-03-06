@@ -24,25 +24,26 @@ public class Message {
     @JoinColumn(name = "sender_id", nullable = false)
     private User sender;
 
-    /**
-     * Null nếu là tin nhắn Chat Live trong phòng đấu giá.
-     */
+    /** Null nếu là tin nhắn Chat Live trong phòng đấu giá (broadcast). */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "receiver_id")
     private User receiver;
 
-    /**
-     * Null nếu là Chat P2P thương lượng.
-     */
+    /** Null nếu là Chat P2P thương lượng qua Listing. */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "auction_id")
     private Auction auction;
+
+    /** Null nếu là Chat Live trong phòng đấu giá. */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "market_listing_id")
+    private MarketListing marketListing;
 
     @Column(columnDefinition = "TEXT", nullable = false)
     private String content;
 
     @CreationTimestamp
-    @Column(nullable = false, updatable = false)
-    private Instant timestamp;
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private Instant createdAt;
 }
 

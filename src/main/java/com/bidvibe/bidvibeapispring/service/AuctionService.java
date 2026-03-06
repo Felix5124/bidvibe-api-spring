@@ -5,9 +5,11 @@ import com.bidvibe.bidvibeapispring.constant.ErrorCode;
 import com.bidvibe.bidvibeapispring.dto.auction.ApproveItemRequest;
 import com.bidvibe.bidvibeapispring.dto.auction.AuctionControlRequest;
 import com.bidvibe.bidvibeapispring.dto.auction.AuctionResponse;
+import com.bidvibe.bidvibeapispring.dto.bid.BidResponse;
 import com.bidvibe.bidvibeapispring.dto.ws.AuctionUpdatePayload;
 import com.bidvibe.bidvibeapispring.entity.Auction;
 import com.bidvibe.bidvibeapispring.entity.AuctionSession;
+import com.bidvibe.bidvibeapispring.entity.Bid;
 import com.bidvibe.bidvibeapispring.entity.Item;
 import com.bidvibe.bidvibeapispring.entity.User;
 import com.bidvibe.bidvibeapispring.exception.BidVibeException;
@@ -15,6 +17,8 @@ import com.bidvibe.bidvibeapispring.repository.AuctionRepository;
 import com.bidvibe.bidvibeapispring.repository.BidRepository;
 import com.bidvibe.bidvibeapispring.repository.WatchlistRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -122,8 +126,8 @@ public class AuctionService {
         }
         auctionRepository.save(auction);
 
-        // Thông báo tất cả user đang theo dõi
-        watchlistRepository.findByAuctionId(auction.getId())
+        // Thông báo tất cả user đang theo dõi item này
+        watchlistRepository.findByItemId(auction.getItem().getId())
                 .forEach(w -> notificationService.sendNotification(
                         w.getUser(),
                         "Phiên đấu giá đã bắt đầu!",
@@ -225,6 +229,21 @@ public class AuctionService {
         return AuctionResponse.from(findById(auctionId));
     }
 
+    /** GET /api/auctions/{id}/bids – lịch sử bid có phân trang. */
+    @Transactional(readOnly = true)
+    public Page<BidResponse> getAuctionBids(UUID auctionId, Pageable pageable) {
+        return bidRepository.findByAuctionId(auctionId, pageable).map(BidResponse::from);
+    }
+
+    /** Admin reset đồng hồ của một auction. */
+    @Transactional
+    public AuctionResponse resetAuctionTimer(UUID auctionId) {
+        Auction auction = findById(auctionId);
+        auction.setEndTime(Instant.now().plusSeconds(
+                auction.getDurationSeconds() != null ? auction.getDurationSeconds() : AppConstants.ENGLISH_AUCTION_DURATION_SECONDS));
+        return AuctionResponse.from(auctionRepository.save(auction));
+    }
+
     @Transactional(readOnly = true)
     public List<AuctionResponse> getAuctionsBySession(UUID sessionId) {
         return auctionRepository.findBySessionIdOrderByOrderIndex(sessionId)
@@ -263,5 +282,36 @@ public class AuctionService {
     public Auction findById(UUID auctionId) {
         return auctionRepository.findById(auctionId)
                 .orElseThrow(() -> new BidVibeException(ErrorCode.AUCTION_NOT_FOUND));
+    }
+
+    /**
+     * DELETE /api/admin/auctions/{auctionId}/bids/{bidId}
+     * Xóa một bid cụ thể: hoàn tiền locked, tính lại giá hiện tại, broadcast.
+     */
+    @Transactional
+    public void removeBid(UUID auctionId, UUID bidId) {
+        Auction auction = findById(auctionId);
+        Bid bid = bidRepository.findById(bidId)
+                .orElseThrow(() -> new BidVibeException(ErrorCode.BID_NOT_FOUND));
+
+        if (!bid.getAuction().getId().equals(auctionId)) {
+            throw new BidVibeException(ErrorCode.BID_NOT_FOUND);
+        }
+
+        // Hoàn tiền locked cho user có bid bị xóa
+        walletService.unlockFunds(bid.getUser().getId(), bid.getAmount());
+        bidRepository.delete(bid);
+
+        // Tính lại currentPrice và winner từ bid cao nhất còn lại
+        bidRepository.findHighestBidInAuction(auctionId).ifPresentOrElse(highest -> {
+            auction.setCurrentPrice(highest.getAmount());
+            auction.setWinner(highest.getUser());
+        }, () -> {
+            auction.setCurrentPrice(auction.getStartPrice());
+            auction.setWinner(null);
+        });
+
+        auctionRepository.save(auction);
+        broadcastAuctionUpdate(auction);
     }
 }

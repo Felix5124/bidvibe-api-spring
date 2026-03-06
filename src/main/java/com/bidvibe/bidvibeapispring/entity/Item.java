@@ -2,10 +2,10 @@ package com.bidvibe.bidvibeapispring.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
-import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
@@ -24,7 +24,7 @@ public class Item {
     }
 
     public enum Status {
-        PENDING, APPROVED, IN_AUCTION, IN_INVENTORY, SHIPPED
+        PENDING, APPROVED, IN_AUCTION, IN_INVENTORY, SHIPPED, REJECTED
     }
 
     @Id
@@ -36,7 +36,7 @@ public class Item {
     private User seller;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "current_owner_id")
+    @JoinColumn(name = "current_owner_id", nullable = false)
     private User currentOwner;
 
     @Column(nullable = false)
@@ -50,18 +50,21 @@ public class Item {
      */
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "image_urls", columnDefinition = "jsonb")
-    private List<String> imageUrls;
+    @Builder.Default
+    private List<String> imageUrls = new java.util.ArrayList<>();
+
+    /**
+     * Mảng tags phân loại vật phẩm lưu dạng JSON.
+     */
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "tags", columnDefinition = "jsonb")
+    @Builder.Default
+    private List<String> tags = new java.util.ArrayList<>();
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     @Builder.Default
     private Rarity rarity = Rarity.COMMON;
-
-    /**
-     * Giá rao bán trên Chợ Đen – null nếu không rao bán.
-     */
-    @Column(name = "asking_price", precision = 19, scale = 4)
-    private BigDecimal askingPrice;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -73,5 +76,9 @@ public class Item {
      */
     @Column(name = "cooldown_until")
     private Instant cooldownUntil;
+
+    @CreationTimestamp
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private Instant createdAt;
 }
 

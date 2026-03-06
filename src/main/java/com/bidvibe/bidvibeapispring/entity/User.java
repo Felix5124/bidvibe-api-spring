@@ -28,7 +28,7 @@ public class User {
     @Column(nullable = false, unique = true)
     private String email;
 
-    @Column
+    @Column(nullable = false)
     private String nickname;
 
     @Column(name = "avatar_url")
@@ -48,6 +48,17 @@ public class User {
     @Column(nullable = false)
     @Builder.Default
     private Role role = Role.USER;
+
+    @Column(name = "is_banned", nullable = false)
+    @Builder.Default
+    private boolean isBanned = false;
+
+    @Column(name = "is_muted", nullable = false)
+    @Builder.Default
+    private boolean isMuted = false;
+
+    @Column(name = "banned_at")
+    private Instant bannedAt;
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)

@@ -56,13 +56,11 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         try {
             JsonNode claims = parseJwtPayload(token);
 
+            String sub   = getClaimAsString(claims, SecurityConstants.JWT_CLAIM_SUB);
             String email = getClaimAsString(claims, SecurityConstants.JWT_CLAIM_EMAIL);
-            if (email == null) {
-                email = getClaimAsString(claims, SecurityConstants.JWT_CLAIM_SUB);
-            }
 
             if (email != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-                User user = userService.findOrCreate(email);
+                User user = userService.findOrCreate(sub, email);
                 String role = "ROLE_" + user.getRole().name();
 
                 UsernamePasswordAuthenticationToken authToken =
@@ -72,9 +70,11 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                         );
                 authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                 SecurityContextHolder.getContext().setAuthentication(authToken);
+            } else if (email == null) {
+                log.warn("JWT missing email claim — request proceeds unauthenticated");
             }
 
-        } catch (IOException e) {
+        } catch (Exception e) {
             log.warn("JWT processing failed: {}", e.getMessage());
         }
 

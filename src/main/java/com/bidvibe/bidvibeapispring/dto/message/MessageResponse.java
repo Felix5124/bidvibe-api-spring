@@ -30,7 +30,7 @@ public class MessageResponse {
     private UUID auctionId;
 
     private String content;
-    private Instant timestamp;
+    private Instant createdAt;
 
     // ------------------------------------------------------------------
     // Mapper helper
@@ -53,7 +53,7 @@ public class MessageResponse {
                         .build() : null)
                 .auctionId(message.getAuction() != null ? message.getAuction().getId() : null)
                 .content(message.getContent())
-                .timestamp(message.getTimestamp())
+                .createdAt(message.getCreatedAt())
                 .build();
     }
 }

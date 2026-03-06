@@ -13,37 +13,36 @@ import java.util.UUID;
 public interface WatchlistRepository extends JpaRepository<Watchlist, Watchlist.WatchlistId> {
 
     /**
-     * Danh sách auction user đang theo dõi (/api/users/watchlist).
+     * Danh sách item user đang theo dõi (/api/users/watchlist).
      */
     List<Watchlist> findByUserId(UUID userId);
 
     /**
-     * Tất cả user đang theo dõi một auction –
-     * dùng để gửi thông báo toast/email khi phiên bắt đầu.
+     * Tất cả user đang theo dõi một item —
+     * dùng để gửi thông báo khi phiên đấu giá item đó bắt đầu.
      */
-    List<Watchlist> findByAuctionId(UUID auctionId);
+    List<Watchlist> findByItemId(UUID itemId);
 
     /**
-     * Kiểm tra user đã theo dõi auction này chưa –
-     * dùng để toggle watchlist (/api/users/watchlist/{id}).
+     * Kiểm tra user đã theo dõi item này chưa —
+     * dùng để toggle watchlist.
      */
-    boolean existsByUserIdAndAuctionId(UUID userId, UUID auctionId);
+    boolean existsByUserIdAndItemId(UUID userId, UUID itemId);
 
     /**
      * Xóa theo dõi khi user bấm toggle lần 2.
      */
-    void deleteByUserIdAndAuctionId(UUID userId, UUID auctionId);
+    void deleteByUserIdAndItemId(UUID userId, UUID itemId);
 
     /**
-     * Đếm số người đang theo dõi một auction –
-     * hiển thị trên UI.
+     * Đếm số người đang theo dõi một item.
      */
-    long countByAuctionId(UUID auctionId);
+    long countByItemId(UUID itemId);
 
     /**
-     * Lấy danh sách user_id theo dõi auction – dùng để batch gửi notification.
+     * Lấy danh sách user_id theo dõi item — dùng để batch gửi notification.
      */
-    @Query("SELECT w.user.id FROM Watchlist w WHERE w.auction.id = :auctionId")
-    List<UUID> findUserIdsByAuctionId(@Param("auctionId") UUID auctionId);
+    @Query("SELECT w.user.id FROM Watchlist w WHERE w.item.id = :itemId")
+    List<UUID> findUserIdsByItemId(@Param("itemId") UUID itemId);
 }
 

@@ -14,31 +14,14 @@ import java.util.UUID;
 @Repository
 public interface ItemRepository extends JpaRepository<Item, UUID> {
 
-    /** Danh sách vật phẩm chờ Admin duyệt (/api/admin/items/pending). */
+    /** Danh sách vật phẩm chờ Admin duyệt - không phân trang. */
     List<Item> findByStatus(Item.Status status);
+
+    /** Danh sách vật phẩm theo status có phân trang (/api/admin/items). */
+    Page<Item> findByStatus(Item.Status status, Pageable pageable);
 
     /** Kho đồ của người dùng – những món đã thắng đấu giá (/api/items/inventory). */
     Page<Item> findByCurrentOwnerIdAndStatus(UUID ownerId, Item.Status status, Pageable pageable);
-
-    /** Tất cả đồ đang rao bán trên Chợ Đen (/api/market/items). */
-    @Query("SELECT i FROM Item i WHERE i.status = 'IN_INVENTORY' AND i.askingPrice IS NOT NULL")
-    Page<Item> findBlackMarketItems(Pageable pageable);
-
-    /**
-     * Tìm kiếm & lọc Chợ Đen theo tên, độ hiếm.
-     * Hỗ trợ bộ lọc thông minh theo docs.
-     */
-    @Query("""
-            SELECT i FROM Item i
-            WHERE i.status = 'IN_INVENTORY'
-              AND i.askingPrice IS NOT NULL
-              AND (:keyword IS NULL OR LOWER(i.name) LIKE LOWER(CONCAT('%', :keyword, '%')))
-              AND (:rarity IS NULL OR i.rarity = :rarity)
-            """)
-    Page<Item> searchBlackMarket(
-            @Param("keyword") String keyword,
-            @Param("rarity") Item.Rarity rarity,
-            Pageable pageable);
 
     /** Tất cả đồ do một seller gửi ký gửi. */
     List<Item> findBySellerId(UUID sellerId);

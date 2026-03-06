@@ -18,7 +18,7 @@ import java.util.UUID;
 public class Transaction {
 
     public enum Type {
-        DEPOSIT, WITHDRAW, BID_LOCK, BID_UNLOCK, FINAL_PAYMENT
+        DEPOSIT, WITHDRAW, BID_LOCK, BID_UNLOCK, FINAL_PAYMENT, PLATFORM_FEE
     }
 
     public enum Status {
@@ -45,8 +45,15 @@ public class Transaction {
     @Builder.Default
     private Status status = Status.PENDING;
 
+    /** UUID tham chiếu tới Auction hoặc MarketListing liên quan. */
+    @Column(name = "reference_id")
+    private UUID referenceId;
+
+    @Column(length = 500)
+    private String description;
+
     @CreationTimestamp
-    @Column(nullable = false, updatable = false)
-    private Instant timestamp;
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private Instant createdAt;
 }
 

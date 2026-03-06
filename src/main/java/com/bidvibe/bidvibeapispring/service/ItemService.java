@@ -14,9 +14,11 @@ import com.bidvibe.bidvibeapispring.dto.item.ItemResponse;
 import com.bidvibe.bidvibeapispring.dto.item.ListItemOnMarketRequest;
 import com.bidvibe.bidvibeapispring.dto.item.SubmitItemRequest;
 import com.bidvibe.bidvibeapispring.entity.Item;
+import com.bidvibe.bidvibeapispring.entity.MarketListing;
 import com.bidvibe.bidvibeapispring.entity.User;
 import com.bidvibe.bidvibeapispring.exception.BidVibeException;
 import com.bidvibe.bidvibeapispring.repository.ItemRepository;
+import com.bidvibe.bidvibeapispring.repository.MarketListingRepository;
 
 import lombok.RequiredArgsConstructor;
 
@@ -33,6 +35,7 @@ import lombok.RequiredArgsConstructor;
 public class ItemService {
 
     private final ItemRepository itemRepository;
+    private final MarketListingRepository marketListingRepository;
     private final UserService userService;
 
     // ------------------------------------------------------------------
@@ -74,8 +77,8 @@ public class ItemService {
     /** GET /api/market/items – tìm kiếm Chợ Đen với keyword & rarity filter */
     @Transactional(readOnly = true)
     public Page<ItemResponse> searchBlackMarket(String keyword, Item.Rarity rarity, Pageable pageable) {
-        return itemRepository.searchBlackMarket(keyword, rarity, pageable)
-                .map(ItemResponse::from);
+        return marketListingRepository.searchActive(keyword, rarity, pageable)
+                .map(listing -> ItemResponse.from(listing.getItem()));
     }
 
     /** POST /api/market/list – niêm yết đồ từ kho lên Chợ Đen */
@@ -91,8 +94,13 @@ public class ItemService {
             throw new BidVibeException(ErrorCode.ITEM_IN_COOLDOWN);
         }
 
-        item.setAskingPrice(req.getAskingPrice());
-        return ItemResponse.from(itemRepository.save(item));
+        MarketListing listing = MarketListing.builder()
+                .item(item)
+                .seller(userService.findById(userId))
+                .askingPrice(req.getAskingPrice())
+                .build();
+        marketListingRepository.save(listing);
+        return ItemResponse.from(item);
     }
 
     /** POST /api/items/confirm-receipt – xác nhận nhận đồ thật, kết thúc vòng đời trên sàn */
@@ -106,7 +114,6 @@ public class ItemService {
         }
 
         item.setStatus(Item.Status.SHIPPED);
-        item.setAskingPrice(null);
         return ItemResponse.from(itemRepository.save(item));
     }
 
@@ -119,6 +126,47 @@ public class ItemService {
     public java.util.List<ItemResponse> getPendingItems() {
         return itemRepository.findByStatus(Item.Status.PENDING)
                 .stream().map(ItemResponse::from).toList();
+    }
+
+    /** GET /api/admin/items?status=&page= */
+    @Transactional(readOnly = true)
+    public Page<ItemResponse> adminListItems(Item.Status status, org.springframework.data.domain.Pageable pageable) {
+        if (status != null) {
+            return itemRepository.findByStatus(status, pageable).map(ItemResponse::from);
+        }
+        return itemRepository.findAll(pageable).map(ItemResponse::from);
+    }
+
+    /** GET /api/items/{id} (public), GET /api/admin/items/{id} */
+    @Transactional(readOnly = true)
+    public ItemResponse getItemDetail(UUID itemId) {
+        return ItemResponse.from(findById(itemId));
+    }
+
+    /** POST /api/admin/items/{id}/reject – từ chối item kèm lý do. */
+    @Transactional
+    public ItemResponse rejectItem(UUID itemId, String reason) {
+        Item item = findById(itemId);
+        if (item.getStatus() != Item.Status.PENDING) {
+            throw new BidVibeException(ErrorCode.ITEM_NOT_AVAILABLE);
+        }
+        item.setStatus(Item.Status.REJECTED);
+        return ItemResponse.from(itemRepository.save(item));
+    }
+
+    /**
+     * POST /api/admin/items/{id}/approve – duyệt item, gán tags + rarity, chuyển status → APPROVED.
+     */
+    @Transactional
+    public ItemResponse approveItem(UUID itemId, Item.Rarity rarity, java.util.List<String> tags) {
+        Item item = findById(itemId);
+        if (item.getStatus() != Item.Status.PENDING) {
+            throw new BidVibeException(ErrorCode.ITEM_NOT_AVAILABLE);
+        }
+        if (tags != null) item.setTags(tags);
+        item.setRarity(rarity);
+        item.setStatus(Item.Status.APPROVED);
+        return ItemResponse.from(itemRepository.save(item));
     }
 
     /**
@@ -145,7 +193,6 @@ public class ItemService {
         Item item = findById(itemId);
         item.setCurrentOwner(winner);
         item.setStatus(Item.Status.IN_INVENTORY);
-        item.setAskingPrice(null);
         item.setCooldownUntil(Instant.now().plusSeconds(AppConstants.ITEM_COOLDOWN_SECONDS));
         itemRepository.save(item);
     }

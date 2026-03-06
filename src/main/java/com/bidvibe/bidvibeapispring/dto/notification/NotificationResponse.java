@@ -20,6 +20,7 @@ import java.util.UUID;
 public class NotificationResponse {
 
     private UUID id;
+    private Notification.Type type;
     private String title;
     private String content;
     private boolean read;
@@ -32,6 +33,7 @@ public class NotificationResponse {
     public static NotificationResponse from(Notification notification) {
         return NotificationResponse.builder()
                 .id(notification.getId())
+                .type(notification.getType())
                 .title(notification.getTitle())
                 .content(notification.getContent())
                 .read(notification.isRead())

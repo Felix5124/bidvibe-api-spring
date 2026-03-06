@@ -2,7 +2,9 @@ package com.bidvibe.bidvibeapispring.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
 
+import java.time.Instant;
 import java.util.UUID;
 
 @Entity
@@ -26,9 +28,15 @@ public class Rating {
     @JoinColumn(name = "to_user_id", nullable = false)
     private User toUser;
 
+    /** Nullable — đúng một trong hai (auction hoặc listing) phải được set. */
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "auction_id", nullable = false)
+    @JoinColumn(name = "auction_id")
     private Auction auction;
+
+    /** Nullable — đúng một trong hai (auction hoặc listing) phải được set. */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "market_listing_id")
+    private MarketListing marketListing;
 
     /** Đánh giá từ 1 đến 5 sao. */
     @Column(nullable = false)
@@ -36,5 +44,9 @@ public class Rating {
 
     @Column(columnDefinition = "TEXT")
     private String comment;
+
+    @CreationTimestamp
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private Instant createdAt;
 }
 

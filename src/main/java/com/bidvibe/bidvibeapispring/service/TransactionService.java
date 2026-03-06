@@ -7,10 +7,13 @@ import com.bidvibe.bidvibeapispring.entity.Transaction;
 import com.bidvibe.bidvibeapispring.exception.BidVibeException;
 import com.bidvibe.bidvibeapispring.repository.TransactionRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.UUID;
 
 /**
  * Admin panel – duyệt / từ chối các lệnh Nạp và Rút tiền.
@@ -28,10 +31,19 @@ public class TransactionService {
     // Admin – list pending
     // ------------------------------------------------------------------
 
+    /** Admin – danh sách tất cả giao dịch có phân trang (GET /api/admin/transactions). */
+    @Transactional(readOnly = true)
+    public Page<TransactionResponse> listAllPaged(Transaction.Type type,
+                                                   Transaction.Status status,
+                                                   Pageable pageable) {
+        return transactionRepository.findAllFiltered(type, status, pageable)
+                .map(TransactionResponse::from);
+    }
+
     @Transactional(readOnly = true)
     public List<TransactionResponse> listPending() {
         return transactionRepository
-                .findByTypeInAndStatusOrderByTimestampAsc(
+                .findByTypeInAndStatusOrderByCreatedAtAsc(
                         List.of(Transaction.Type.DEPOSIT, Transaction.Type.WITHDRAW),
                         Transaction.Status.PENDING)
                 .stream().map(TransactionResponse::from).toList();
@@ -74,5 +86,37 @@ public class TransactionService {
     private TransactionResponse cancelDeposit(Transaction tx) {
         tx.setStatus(Transaction.Status.CANCELLED);
         return TransactionResponse.from(transactionRepository.save(tx));
+    }
+
+    /**
+     * POST /api/admin/transactions/{id}/approve
+     * Tự động phát hiện type và duyệt.
+     */
+    @Transactional
+    public TransactionResponse approve(UUID transactionId) {
+        Transaction tx = transactionRepository.findById(transactionId)
+                .orElseThrow(() -> new BidVibeException(ErrorCode.TRANSACTION_NOT_FOUND));
+        return switch (tx.getType()) {
+            case DEPOSIT  -> walletService.approveDeposit(transactionId);
+            case WITHDRAW -> walletService.approveWithdraw(transactionId);
+            default -> throw new BidVibeException(ErrorCode.TRANSACTION_NOT_FOUND,
+                    "Chỉ duyệt DEPOSIT và WITHDRAW");
+        };
+    }
+
+    /**
+     * POST /api/admin/transactions/{id}/reject
+     * Tự động phát hiện type và từ chối.
+     */
+    @Transactional
+    public TransactionResponse reject(UUID transactionId) {
+        Transaction tx = transactionRepository.findById(transactionId)
+                .orElseThrow(() -> new BidVibeException(ErrorCode.TRANSACTION_NOT_FOUND));
+        return switch (tx.getType()) {
+            case DEPOSIT  -> walletService.rejectDeposit(transactionId);
+            case WITHDRAW -> walletService.rejectWithdraw(transactionId);
+            default -> throw new BidVibeException(ErrorCode.TRANSACTION_NOT_FOUND,
+                    "Chỉ từ chối DEPOSIT và WITHDRAW");
+        };
     }
 }

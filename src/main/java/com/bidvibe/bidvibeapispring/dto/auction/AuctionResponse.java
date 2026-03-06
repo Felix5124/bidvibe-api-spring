@@ -32,6 +32,8 @@ public class AuctionResponse {
     private BigDecimal stepPrice;
     private BigDecimal decreaseAmount;
     private Integer intervalSeconds;
+    private Integer durationSeconds;
+    private Integer extendSeconds;
     private Instant endTime;
     private Integer orderIndex;
     private Auction.Status status;
@@ -54,6 +56,8 @@ public class AuctionResponse {
                 .stepPrice(auction.getStepPrice())
                 .decreaseAmount(auction.getDecreaseAmount())
                 .intervalSeconds(auction.getIntervalSeconds())
+                .durationSeconds(auction.getDurationSeconds())
+                .extendSeconds(auction.getExtendSeconds())
                 .endTime(auction.getEndTime())
                 .orderIndex(auction.getOrderIndex())
                 .status(auction.getStatus())

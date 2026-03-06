@@ -28,8 +28,12 @@ public class Auction {
     @JoinColumn(name = "session_id", nullable = false)
     private AuctionSession session;
 
-    @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "item_id", nullable = false, unique = true)
+    /**
+     * Một item có thể xuất hiện trong nhiều auction qua các phiên khác nhau,
+     * nhưng chỉ có 1 WAITING/ACTIVE tại một thời điểm (partial unique index trong DB).
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "item_id", nullable = false)
     private Item item;
 
     /** Giá khởi điểm (English/Dutch) hoặc giá tối thiểu (Sealed). */
@@ -53,17 +57,28 @@ public class Auction {
     private BigDecimal decreaseAmount;
 
     /** Thời gian giữa mỗi nấc giảm cho Dutch (giây), mặc định 5s. */
-    @Column(name = "interval_seconds")
+    @Column(name = "interval_seconds", nullable = false)
     @Builder.Default
     private Integer intervalSeconds = 5;
+
+    /** Tổng thời gian đấu giá (giây), mặc định 120s. */
+    @Column(name = "duration_seconds", nullable = false)
+    @Builder.Default
+    private Integer durationSeconds = 120;
+
+    /** Số giây gia hạn khi có bid cuối (Popcorn Bidding), mặc định 30s. */
+    @Column(name = "extend_seconds", nullable = false)
+    @Builder.Default
+    private Integer extendSeconds = 30;
 
     /** Thời điểm kết thúc (English/Dutch) hoặc thời điểm mở thầu (Sealed). */
     @Column(name = "end_time")
     private Instant endTime;
 
     /** Thứ tự đấu giá tuần tự trong phiên. */
-    @Column(name = "order_index")
-    private Integer orderIndex;
+    @Column(name = "order_index", nullable = false)
+    @Builder.Default
+    private Integer orderIndex = 0;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -73,5 +88,10 @@ public class Auction {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "winner_id")
     private User winner;
+
+    /** Optimistic Locking — chống race condition khi đặt giá đồng thời. */
+    @Version
+    @Column(nullable = false)
+    private Long version;
 }
 

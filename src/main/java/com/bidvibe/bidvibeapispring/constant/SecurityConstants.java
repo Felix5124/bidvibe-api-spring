@@ -41,17 +41,26 @@ public final class SecurityConstants {
     // -------------------------------------------------------------------------
 
     /**
-     * Các URL được phép truy cập công khai (không cần JWT).
-     * Dùng trong SecurityConfig để cấu hình permitAll().
+     * Các đường dẫn hoàn toàn công khai — không giới hạn HTTP method.
+     * Dùng cho WebSocket handshake, health check, Swagger docs.
      */
-    public static final String[] PUBLIC_URLS = {
-            "/api/auctions/**",          // Xem thông tin phiên đấu giá công khai
-            "/api/market/items",         // Xem danh sách Chợ Đen công khai
-            "/api/analytics/price/**",   // Xem biểu đồ giá công khai
+    public static final String[] PUBLIC_PATHS = {
             "/ws/**",                    // WebSocket handshake endpoint
             "/actuator/health",          // Health check
             "/v3/api-docs/**",           // Swagger / OpenAPI docs
             "/swagger-ui/**",
+    };
+
+    /**
+     * Các API path chỉ cho phép GET không cần xác thực.
+     * Tất cả method khác (POST/PUT/DELETE) vẫn yêu cầu JWT.
+     */
+    public static final String[] PUBLIC_GET_URLS = {
+            "/api/sessions/**",          // Xem thông tin phiên đấu giá công khai
+            "/api/auctions/**",          // Xem chi tiết auction công khai
+            "/api/items/**",             // Xem thông tin vật phẩm công khai
+            "/api/market/listings/**",   // Xem danh sách Chợ Đen công khai
+            "/api/analytics/**",         // Xem biểu đồ giá & thống kê công khai
     };
 
     /**

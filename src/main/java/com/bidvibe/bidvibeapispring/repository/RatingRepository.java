@@ -17,7 +17,7 @@ public interface RatingRepository extends JpaRepository<Rating, UUID> {
      * Tất cả đánh giá nhận được của một user –
      * hiển thị trên trang cá nhân.
      */
-    List<Rating> findByToUserIdOrderByIdDesc(UUID toUserId);
+    List<Rating> findByToUserIdOrderByCreatedAtDesc(UUID toUserId);
 
     /**
      * Tất cả đánh giá mà user đã gửi đi –
@@ -26,16 +26,25 @@ public interface RatingRepository extends JpaRepository<Rating, UUID> {
     List<Rating> findByFromUserId(UUID fromUserId);
 
     /**
-     * Tìm đánh giá cụ thể của một transaction (auction) –
+     * Tìm đánh giá cho một auction cụ thể –
      * đảm bảo mỗi giao dịch chỉ được đánh giá một lần.
      */
     Optional<Rating> findByFromUserIdAndAuctionId(UUID fromUserId, UUID auctionId);
 
     /**
-     * Kiểm tra user đã đánh giá giao dịch này chưa –
-     * dùng trước khi cho phép gọi /api/users/rate.
+     * Tìm đánh giá cho một market listing cụ thể.
+     */
+    Optional<Rating> findByFromUserIdAndMarketListingId(UUID fromUserId, UUID marketListingId);
+
+    /**
+     * Kiểm tra user đã đánh giá auction này chưa.
      */
     boolean existsByFromUserIdAndAuctionId(UUID fromUserId, UUID auctionId);
+
+    /**
+     * Kiểm tra user đã đánh giá market listing này chưa.
+     */
+    boolean existsByFromUserIdAndMarketListingId(UUID fromUserId, UUID marketListingId);
 
     /**
      * Tính điểm trung bình của một user –

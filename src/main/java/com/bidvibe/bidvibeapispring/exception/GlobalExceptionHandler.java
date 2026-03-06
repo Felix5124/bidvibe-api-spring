@@ -4,6 +4,7 @@ import com.bidvibe.bidvibeapispring.constant.ErrorCode;
 import com.bidvibe.bidvibeapispring.dto.common.ApiResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.validation.FieldError;
@@ -66,6 +67,16 @@ public class GlobalExceptionHandler {
         return ResponseEntity
                 .status(ErrorCode.VALIDATION_FAILED.getHttpStatus())
                 .body(ApiResponse.error(ErrorCode.VALIDATION_FAILED.getCode(), ex.getMessage()));
+    }
+
+    /** Optimistic locking conflict → 409 CONFLICT */
+    @ExceptionHandler(ObjectOptimisticLockingFailureException.class)
+    public ResponseEntity<ApiResponse<Void>> handleOptimisticLock(ObjectOptimisticLockingFailureException ex) {
+        log.warn("Optimistic locking failure: {}", ex.getMessage());
+        return ResponseEntity
+                .status(ErrorCode.WALLET_OPTIMISTIC_LOCK.getHttpStatus())
+                .body(ApiResponse.error(ErrorCode.WALLET_OPTIMISTIC_LOCK.getCode(),
+                        ErrorCode.WALLET_OPTIMISTIC_LOCK.getMessage()));
     }
 
     /** Mọi lỗi không xác định khác → 500 */

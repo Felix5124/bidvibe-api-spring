@@ -40,12 +40,12 @@ public class SecurityConfig {
             .sessionManagement(session ->
                     session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
-                // WebSocket handshake
-                .requestMatchers(SecurityConstants.WS_ENDPOINT + "/**").permitAll()
-                // Public endpoints
-                .requestMatchers(SecurityConstants.PUBLIC_URLS).permitAll()
                 // OPTIONS preflight
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                // WebSocket, health check, Swagger — no method restriction
+                .requestMatchers(SecurityConstants.PUBLIC_PATHS).permitAll()
+                // Public read-only API (GET only — write methods still require auth)
+                .requestMatchers(HttpMethod.GET, SecurityConstants.PUBLIC_GET_URLS).permitAll()
                 // Admin only
                 .requestMatchers(SecurityConstants.ADMIN_URLS).hasRole("ADMIN")
                 // All others require authentication

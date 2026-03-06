@@ -50,6 +50,8 @@ public class NotificationPayload {
         WATCHLIST_START,
         DEPOSIT_APPROVED,
         WITHDRAW_APPROVED,
+        ITEM_REJECTED,
+        KICK,
         SYSTEM
     }
 }

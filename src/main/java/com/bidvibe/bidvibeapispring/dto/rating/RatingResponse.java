@@ -7,6 +7,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.time.Instant;
 import java.util.UUID;
 
 /**
@@ -21,9 +22,13 @@ public class RatingResponse {
     private UUID id;
     private UserSummary fromUser;
     private UserSummary toUser;
+    /** Null nếu đánh giá cho MarketListing. */
     private UUID auctionId;
+    /** Null nếu đánh giá cho Auction. */
+    private UUID marketListingId;
     private Integer stars;
     private String comment;
+    private Instant createdAt;
 
     // ------------------------------------------------------------------
     // Mapper helper
@@ -44,9 +49,11 @@ public class RatingResponse {
                         .avatarUrl(rating.getToUser().getAvatarUrl())
                         .reputationScore(rating.getToUser().getReputationScore())
                         .build())
-                .auctionId(rating.getAuction().getId())
+                .auctionId(rating.getAuction() != null ? rating.getAuction().getId() : null)
+                .marketListingId(rating.getMarketListing() != null ? rating.getMarketListing().getId() : null)
                 .stars(rating.getStars())
                 .comment(rating.getComment())
+                .createdAt(rating.getCreatedAt())
                 .build();
     }
 }

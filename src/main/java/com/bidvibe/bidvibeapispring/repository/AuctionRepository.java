@@ -23,10 +23,14 @@ public interface AuctionRepository extends JpaRepository<Auction, UUID> {
     Optional<Auction> findBySessionIdAndStatus(UUID sessionId, Auction.Status status);
 
     /**
-     * Tìm auction của một item cụ thể – dùng để check trạng thái
-     * và cập nhật giá khi có bid.
+     * Tìm auction WAITING hoặc ACTIVE của một item – dùng khi bid để lấy auction đang diễn ra.
+     * DB đảm bảo partial unique index: chỉ 1 WAITING/ACTIVE per item tại 1 thời điểm.
      */
-    Optional<Auction> findByItemId(UUID itemId);
+    @Query("SELECT a FROM Auction a WHERE a.item.id = :itemId AND a.status IN ('WAITING', 'ACTIVE')")
+    Optional<Auction> findActiveByItemId(@Param("itemId") UUID itemId);
+
+    /** Toàn bộ lịch sử auction của một item (kể cả ENDED/CANCELLED). */
+    List<Auction> findByItemIdOrderByEndTimeDesc(UUID itemId);
 
     /** Tất cả auctions theo trạng thái (vd: lấy toàn bộ ACTIVE để scheduler xử lý). */
     List<Auction> findByStatus(Auction.Status status);

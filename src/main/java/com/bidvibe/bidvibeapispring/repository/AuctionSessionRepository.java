@@ -22,5 +22,17 @@ public interface AuctionSessionRepository extends JpaRepository<AuctionSession, 
 
     /** Tìm phiên đang ACTIVE theo loại – dùng khi Admin điều hành phiên. */
     List<AuctionSession> findByStatusAndType(AuctionSession.Status status, AuctionSession.Type type);
+
+    /** Danh sách phiên có lọc + phân trang (public API GET /api/sessions). */
+    @org.springframework.data.jpa.repository.Query("""
+            SELECT s FROM AuctionSession s
+            WHERE (:status IS NULL OR s.status = :status)
+              AND (:type   IS NULL OR s.type   = :type)
+            ORDER BY s.startTime DESC
+            """)
+    org.springframework.data.domain.Page<AuctionSession> searchSessions(
+            @org.springframework.data.repository.query.Param("status") AuctionSession.Status status,
+            @org.springframework.data.repository.query.Param("type")   AuctionSession.Type type,
+            org.springframework.data.domain.Pageable pageable);
 }
 

@@ -61,6 +61,7 @@ public enum ErrorCode {
     AUCTION_BID_TOO_LOW     (5004, HttpStatus.BAD_REQUEST,   "Giá đặt phải cao hơn giá hiện tại và bước giá tối thiểu."),
     AUCTION_BID_ON_OWN_ITEM (5005, HttpStatus.BAD_REQUEST,   "Bạn không thể đấu giá trên vật phẩm của chính mình."),
     AUCTION_SEALED_DUPLICATE(5006, HttpStatus.CONFLICT,      "Bạn đã đặt giá kín cho lượt đấu giá này rồi."),
+    BID_NOT_FOUND           (5007, HttpStatus.NOT_FOUND,     "Không tìm thấy lượt đặt giá."),
 
     // -------------------------------------------------------------------------
     // PROXY BID
@@ -92,6 +93,8 @@ public enum ErrorCode {
     // -------------------------------------------------------------------------
     MARKET_ITEM_NOT_FOR_SALE(10001, HttpStatus.BAD_REQUEST,  "Vật phẩm này chưa được niêm yết trên Chợ Đen."),
     MARKET_CANNOT_BUY_OWN   (10002, HttpStatus.BAD_REQUEST,  "Bạn không thể mua vật phẩm của chính mình."),
+    MARKET_LISTING_NOT_FOUND(10003, HttpStatus.NOT_FOUND,     "Không tìm thấy listing trên Chợ Đen."),
+    MARKET_LISTING_ALREADY_ACTIVE(10004, HttpStatus.CONFLICT, "Vật phẩm này đã có một listing đang hoạt động."),
 
     // -------------------------------------------------------------------------
     // NOTIFICATION

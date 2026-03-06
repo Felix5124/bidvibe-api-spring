@@ -84,6 +84,7 @@ public class NotificationService {
                 .user(user)
                 .title(title)
                 .content(content)
+                .type(toEntityType(type))
                 .build());
 
         // 2. Push qua WebSocket /topic/notification/{userId}
@@ -99,5 +100,18 @@ public class NotificationService {
 
         messagingTemplate.convertAndSend(
                 "/topic/notification/" + user.getId(), payload);
+    }
+
+    private Notification.Type toEntityType(NotificationPayload.NotificationType wsType) {
+        return switch (wsType) {
+            case OUTBID           -> Notification.Type.OUTBID;
+            case WIN              -> Notification.Type.AUCTION_WON;
+            case WATCHLIST_START  -> Notification.Type.WATCHLIST_ALERT;
+            case DEPOSIT_APPROVED,
+                 WITHDRAW_APPROVED -> Notification.Type.FINANCE;
+            case ITEM_REJECTED    -> Notification.Type.ITEM_REJECTED;
+            case KICK,
+                 SYSTEM           -> Notification.Type.MODERATION;
+        };
     }
 }

@@ -18,7 +18,7 @@ public interface MessageRepository extends JpaRepository<Message, UUID> {
      * Chat Live trong phòng đấu giá – tin nhắn public của một auction room.
      * receiver là null khi là chat live.
      */
-    List<Message> findByAuctionIdAndReceiverIsNullOrderByTimestampAsc(UUID auctionId);
+    List<Message> findByAuctionIdAndReceiverIsNullOrderByCreatedAtAsc(UUID auctionId);
 
     /**
      * Chat P2P thương lượng giữa 2 user (/api/market/chat-history).
@@ -30,7 +30,7 @@ public interface MessageRepository extends JpaRepository<Message, UUID> {
             WHERE m.auction IS NULL
               AND ((m.sender.id = :userId AND m.receiver.id = :otherId)
                 OR (m.sender.id = :otherId AND m.receiver.id = :userId))
-            ORDER BY m.timestamp ASC
+            ORDER BY m.createdAt ASC
             """)
     List<Message> findP2PConversation(
             @Param("userId") UUID userId,
@@ -44,12 +44,17 @@ public interface MessageRepository extends JpaRepository<Message, UUID> {
             WHERE m.auction IS NULL
               AND ((m.sender.id = :userId AND m.receiver.id = :otherId)
                 OR (m.sender.id = :otherId AND m.receiver.id = :userId))
-            ORDER BY m.timestamp DESC
+            ORDER BY m.createdAt DESC
             """)
     Page<Message> findP2PConversationPaged(
             @Param("userId") UUID userId,
             @Param("otherId") UUID otherId,
             Pageable pageable);
+
+    /**
+     * Lịch sử chat P2P gắn với một market listing cụ thể.
+     */
+    List<Message> findByMarketListingIdOrderByCreatedAtAsc(UUID marketListingId);
 
     /**
      * Danh sách các cuộc hội thoại P2P gần nhất của user –
@@ -59,7 +64,7 @@ public interface MessageRepository extends JpaRepository<Message, UUID> {
             SELECT m FROM Message m
             WHERE m.auction IS NULL
               AND (m.sender.id = :userId OR m.receiver.id = :userId)
-            ORDER BY m.timestamp DESC
+            ORDER BY m.createdAt DESC
             """)
     Page<Message> findRecentP2PConversations(@Param("userId") UUID userId, Pageable pageable);
 

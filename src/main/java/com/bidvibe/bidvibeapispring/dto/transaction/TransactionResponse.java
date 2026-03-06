@@ -25,7 +25,9 @@ public class TransactionResponse {
     private Transaction.Type type;
     private BigDecimal amount;
     private Transaction.Status status;
-    private Instant timestamp;
+    private UUID referenceId;
+    private String description;
+    private Instant createdAt;
 
     // ------------------------------------------------------------------
     // Mapper helper
@@ -38,7 +40,9 @@ public class TransactionResponse {
                 .type(tx.getType())
                 .amount(tx.getAmount())
                 .status(tx.getStatus())
-                .timestamp(tx.getTimestamp())
+                .referenceId(tx.getReferenceId())
+                .description(tx.getDescription())
+                .createdAt(tx.getCreatedAt())
                 .build();
     }
 }

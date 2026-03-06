@@ -23,8 +23,8 @@ public class Watchlist {
 
     @Id
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "auction_id", nullable = false)
-    private Auction auction;
+    @JoinColumn(name = "item_id", nullable = false)
+    private Item item;
 
     /** Composite Primary Key class. */
     @Getter
@@ -34,7 +34,7 @@ public class Watchlist {
     @EqualsAndHashCode
     public static class WatchlistId implements Serializable {
         private UUID user;
-        private UUID auction;
+        private UUID item;
     }
 }
 

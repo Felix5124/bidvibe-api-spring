@@ -2,6 +2,8 @@ package com.bidvibe.bidvibeapispring.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -80,6 +82,7 @@ public class Auction {
     @Builder.Default
     private Integer orderIndex = 0;
 
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     @Builder.Default

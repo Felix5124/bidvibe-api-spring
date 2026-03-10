@@ -3,7 +3,9 @@ package com.bidvibe.bidvibeapispring.entity;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.annotations.UpdateTimestamp;
+import org.hibernate.type.SqlTypes;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -42,6 +44,7 @@ public class MarketListing {
     @JoinColumn(name = "buyer_id")
     private User buyer;
 
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     @Builder.Default

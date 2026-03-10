@@ -61,11 +61,13 @@ public class Item {
     @Builder.Default
     private List<String> tags = new java.util.ArrayList<>();
 
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     @Builder.Default
     private Rarity rarity = Rarity.COMMON;
 
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     @Builder.Default

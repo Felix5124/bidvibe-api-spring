@@ -3,6 +3,8 @@ package com.bidvibe.bidvibeapispring.entity;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -33,6 +35,7 @@ public class Transaction {
     @JoinColumn(name = "wallet_id", nullable = false)
     private Wallet wallet;
 
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private Type type;
@@ -40,6 +43,7 @@ public class Transaction {
     @Column(nullable = false, precision = 19, scale = 4)
     private BigDecimal amount;
 
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     @Builder.Default

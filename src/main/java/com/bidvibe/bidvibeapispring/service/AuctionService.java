@@ -17,6 +17,7 @@ import com.bidvibe.bidvibeapispring.repository.AuctionRepository;
 import com.bidvibe.bidvibeapispring.repository.BidRepository;
 import com.bidvibe.bidvibeapispring.repository.WatchlistRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
@@ -37,6 +38,7 @@ import java.util.UUID;
  * - Push WebSocket khi giá/trạng thái thay đổi
  * - Thông báo Watchlist khi phiên bắt đầu
  */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class AuctionService {
@@ -160,39 +162,49 @@ public class AuctionService {
      */
     @Transactional
     public void endAuction(Auction auction) {
-        if (auction.getStatus() == Auction.Status.ENDED ||
-            auction.getStatus() == Auction.Status.CANCELLED) {
+        // Re-fetch to ensure the entity (and its lazy associations) are attached to this session.
+        // When called from the scheduler there is no outer transaction, so the passed-in entity is detached.
+        final Auction a = auctionRepository.findById(auction.getId())
+                .orElseThrow(() -> new BidVibeException(ErrorCode.AUCTION_NOT_FOUND));
+        if (a.getStatus() == Auction.Status.ENDED ||
+            a.getStatus() == Auction.Status.CANCELLED) {
             return; // idempotent
         }
-        auction.setStatus(Auction.Status.ENDED);
+        a.setStatus(Auction.Status.ENDED);
+        // Persist status immediately — ensures auction leaves ACTIVE even if payment fails
+        auctionRepository.save(a);
 
-        bidRepository.findHighestBidInAuction(auction.getId()).ifPresent(winningBid -> {
-            User winner = winningBid.getUser();
-            auction.setWinner(winner);
-            auctionRepository.save(auction);
+        bidRepository.findHighestBidInAuction(a.getId()).ifPresent(winningBid -> {
+            try {
+                User winner = winningBid.getUser();
+                a.setWinner(winner);
+                auctionRepository.save(a);
 
-            // Tính phí sàn
-            BigDecimal finalAmount = winningBid.getAmount();
-            BigDecimal fee = finalAmount.multiply(AppConstants.PLATFORM_FEE_RATE);
-            User seller = auction.getItem().getSeller();
+                // Tính phí sàn
+                BigDecimal finalAmount = winningBid.getAmount();
+                BigDecimal fee = finalAmount.multiply(AppConstants.PLATFORM_FEE_RATE);
+                User seller = a.getItem().getSeller();
 
-            // Thanh toán
-            walletService.processFinalPayment(winner.getId(), seller.getId(), finalAmount, fee);
+                // Thanh toán
+                walletService.processFinalPayment(winner.getId(), seller.getId(), finalAmount, fee);
 
-            // Chuyển quyền sở hữu item + cooldown
-            itemService.transferToWinner(auction.getItem().getId(), winner);
+                // Chuyển quyền sở hữu item + cooldown
+                itemService.transferToWinner(a.getItem().getId(), winner);
 
-            // Thông báo người thắng
-            notificationService.sendNotification(
-                    winner,
-                    "Chúc mừng! Bạn đã thắng thầu!",
-                    "Bạn đã thắng phiên đấu giá \"" + auction.getItem().getName() + "\" với giá "
-                            + finalAmount.toPlainString() + " VND.",
-                    com.bidvibe.bidvibeapispring.dto.ws.NotificationPayload.NotificationType.WIN,
-                    auction.getId());
+                // Thông báo người thắng
+                notificationService.sendNotification(
+                        winner,
+                        "Chúc mừng! Bạn đã thắng thầu!",
+                        "Bạn đã thắng phiên đấu giá \"" + a.getItem().getName() + "\" với giá "
+                                + finalAmount.toPlainString() + " VND.",
+                        com.bidvibe.bidvibeapispring.dto.ws.NotificationPayload.NotificationType.WIN,
+                        a.getId());
+            } catch (Exception e) {
+                log.error("[endAuction] Lỗi xử lý thanh toán cho auction {}: {}", a.getId(), e.getMessage(), e);
+            }
         });
 
-        broadcastAuctionUpdate(auction);
+        broadcastAuctionUpdate(a);
     }
 
     private void cancelAuction(Auction auction) {

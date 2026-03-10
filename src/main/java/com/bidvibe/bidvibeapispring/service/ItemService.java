@@ -188,7 +188,7 @@ public class ItemService {
      * Chuyển item về IN_INVENTORY + gán current owner sau khi thắng thầu.
      * Áp dụng cooldown 12h.
      */
-    @Transactional
+    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW)
     public void transferToWinner(UUID itemId, User winner) {
         Item item = findById(itemId);
         item.setCurrentOwner(winner);

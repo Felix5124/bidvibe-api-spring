@@ -125,7 +125,7 @@ public class WalletService {
      * Thanh toán cuối khi thắng thầu.
      * locked -= finalAmount; seller.available += (finalAmount - fee)
      */
-    @Transactional
+    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW)
     public void processFinalPayment(UUID buyerUserId, UUID sellerUserId, BigDecimal finalAmount, BigDecimal fee) {
         try {
             // Trừ tiền locked của buyer

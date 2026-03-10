@@ -3,6 +3,8 @@ package com.bidvibe.bidvibeapispring.entity;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -31,6 +33,7 @@ public class AuctionSession {
     @Column(nullable = false)
     private String title;
 
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private Type type;
@@ -39,6 +42,7 @@ public class AuctionSession {
     @Column(name = "start_time")
     private Instant startTime;
 
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     @Builder.Default

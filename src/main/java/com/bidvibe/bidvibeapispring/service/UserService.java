@@ -18,6 +18,8 @@ import com.bidvibe.bidvibeapispring.entity.User;
 import com.bidvibe.bidvibeapispring.exception.BidVibeException;
 import com.bidvibe.bidvibeapispring.repository.RatingRepository;
 import com.bidvibe.bidvibeapispring.repository.UserRepository;
+import com.bidvibe.bidvibeapispring.repository.WalletRepository;
+import com.bidvibe.bidvibeapispring.entity.Wallet;
 
 import lombok.RequiredArgsConstructor;
 
@@ -34,6 +36,7 @@ public class UserService {
     private final UserRepository userRepository;
     private final RatingRepository ratingRepository;
     private final WsEventPublisher wsEventPublisher;
+    private final WalletRepository walletRepository;
 
     // ------------------------------------------------------------------
     // Public API
@@ -73,20 +76,26 @@ public class UserService {
      */
     @Transactional
     public User findOrCreate(String sub, String email) {
-        return userRepository.findByEmail(email)
-                .orElseGet(() -> {
-                    // Derive a safe default nickname from the email prefix
-                    String defaultNickname = email.contains("@")
-                            ? email.substring(0, email.indexOf('@'))
-                            : email;
-                    return userRepository.save(
-                            User.builder()
-                                    .email(email)
-                                    .nickname(defaultNickname)
-                                    .role(User.Role.USER)
-                                    .build()
-                    );
-                });
+        User user = userRepository.findByEmail(email)
+            .orElseGet(() -> {
+                // Derive a safe default nickname from the email prefix
+                String defaultNickname = email.contains("@")
+                    ? email.substring(0, email.indexOf('@'))
+                    : email;
+                return userRepository.save(
+                    User.builder()
+                        .email(email)
+                        .nickname(defaultNickname)
+                        .role(User.Role.USER)
+                        .build()
+                );
+            });
+
+        // Ensure every user has a wallet to avoid WALLET_NOT_FOUND at first usage.
+        walletRepository.findByUserId(user.getId())
+            .orElseGet(() -> walletRepository.save(Wallet.builder().user(user).build()));
+
+        return user;
     }
 
     /**
@@ -143,7 +152,15 @@ public class UserService {
     public Page<UserProfileResponse> adminListUsers(String search, User.Role role,
                                                      Boolean isBanned, Boolean isMuted,
                                                      Pageable pageable) {
-        return userRepository.searchUsers(search, role, isBanned, isMuted, pageable)
+        String normalizedSearch = (search == null || search.isBlank()) ? null : search.trim();
+
+        // Fast path: no filters -> use default paging query to avoid optional-parameter edge cases.
+        if (normalizedSearch == null && role == null && isBanned == null && isMuted == null) {
+            return userRepository.findAll(pageable)
+                .map(UserProfileResponse::from);
+        }
+
+        return userRepository.searchUsers(normalizedSearch, role, isBanned, isMuted, pageable)
                 .map(UserProfileResponse::from);
     }
 

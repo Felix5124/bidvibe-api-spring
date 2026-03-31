@@ -33,7 +33,7 @@ public interface MarketListingRepository extends JpaRepository<MarketListing, UU
             SELECT l FROM MarketListing l
             WHERE l.status = 'ACTIVE'
               AND (:keyword IS NULL OR LOWER(l.item.name) LIKE LOWER(CONCAT('%', :keyword, '%')))
-              AND (:rarity IS NULL OR l.item.rarity = :rarity)
+                                                        AND l.item.rarity = COALESCE(:rarity, l.item.rarity)
             ORDER BY l.createdAt DESC
             """)
     Page<MarketListing> searchActive(

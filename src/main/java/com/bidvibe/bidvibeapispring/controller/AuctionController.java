@@ -70,7 +70,7 @@ public class AuctionController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
         var result = auctionService.getAuctionBids(id,
-                PageRequest.of(page, size, Sort.by("createdAt").descending()));
+            PageRequest.of(page, size, Sort.by("bidTime").descending()));
         return ResponseEntity.ok(ApiResponse.ok(PageResponse.of(result)));
     }
 

@@ -26,8 +26,8 @@ public interface AuctionSessionRepository extends JpaRepository<AuctionSession, 
     /** Danh sách phiên có lọc + phân trang (public API GET /api/sessions). */
     @org.springframework.data.jpa.repository.Query("""
             SELECT s FROM AuctionSession s
-            WHERE (:status IS NULL OR s.status = :status)
-              AND (:type   IS NULL OR s.type   = :type)
+                                                WHERE s.status = COALESCE(:status, s.status)
+                                                        AND s.type = COALESCE(:type, s.type)
             ORDER BY s.startTime DESC
             """)
     org.springframework.data.domain.Page<AuctionSession> searchSessions(

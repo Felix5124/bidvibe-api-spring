@@ -32,9 +32,9 @@ public interface UserRepository extends JpaRepository<User, UUID> {
             WHERE (:search IS NULL
                    OR LOWER(u.nickname) LIKE LOWER(CONCAT('%', :search, '%'))
                    OR LOWER(u.email)    LIKE LOWER(CONCAT('%', :search, '%')))
-              AND (:role    IS NULL OR u.role     = :role)
-              AND (:isBanned IS NULL OR u.isBanned = :isBanned)
-              AND (:isMuted  IS NULL OR u.isMuted  = :isMuted)
+                                                        AND u.role = COALESCE(:role, u.role)
+                                                        AND u.isBanned = COALESCE(:isBanned, u.isBanned)
+                                                        AND u.isMuted = COALESCE(:isMuted, u.isMuted)
             ORDER BY u.createdAt DESC
             """)
     Page<User> searchUsers(

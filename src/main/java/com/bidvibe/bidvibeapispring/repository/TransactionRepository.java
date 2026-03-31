@@ -39,8 +39,8 @@ public interface TransactionRepository extends JpaRepository<Transaction, UUID> 
     @Query("""
             SELECT t FROM Transaction t
             WHERE t.wallet.id = :walletId
-              AND (:type IS NULL OR t.type = :type)
-              AND (:status IS NULL OR t.status = :status)
+                                                        AND t.type = COALESCE(:type, t.type)
+                                                        AND t.status = COALESCE(:status, t.status)
             ORDER BY t.createdAt DESC
             """)
     Page<Transaction> findByWalletFiltered(
@@ -71,8 +71,8 @@ public interface TransactionRepository extends JpaRepository<Transaction, UUID> 
     /** Admin – danh sách toàn bộ giao dịch, lọc tuỳ chọn theo type/status. */
     @Query("""
             SELECT t FROM Transaction t
-            WHERE (:type IS NULL OR t.type = :type)
-              AND (:status IS NULL OR t.status = :status)
+                                                WHERE t.type = COALESCE(:type, t.type)
+                                                        AND t.status = COALESCE(:status, t.status)
             ORDER BY t.createdAt DESC
             """)
     Page<Transaction> findAllFiltered(

@@ -124,6 +124,15 @@ public class MarketListingService {
                 .stream().map(MessageResponse::from).toList();
     }
 
+    /** GET /api/market/{id}/messages – paginated version */
+    @Transactional(readOnly = true)
+    public Page<MessageResponse> getListingMessages(UUID userId, UUID listingId, Pageable pageable) {
+        MarketListing listing = findById(listingId);
+        validateParticipant(listing, userId);
+        return messageRepository.findByMarketListingId(listingId, pageable)
+                .map(MessageResponse::from);
+    }
+
     /** POST /api/market/{id}/messages – gửi tin nhắn thương lượng */
     @Transactional
     public MessageResponse sendListingMessage(UUID senderId, UUID listingId, String content) {

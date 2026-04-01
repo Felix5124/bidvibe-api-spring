@@ -5,6 +5,7 @@ import com.bidvibe.bidvibeapispring.dto.transaction.TransactionResponse;
 import com.bidvibe.bidvibeapispring.dto.wallet.DepositRequest;
 import com.bidvibe.bidvibeapispring.dto.wallet.WalletBalanceResponse;
 import com.bidvibe.bidvibeapispring.dto.wallet.WithdrawRequest;
+import com.bidvibe.bidvibeapispring.dto.ws.NotificationPayload;
 import com.bidvibe.bidvibeapispring.entity.Transaction;
 import com.bidvibe.bidvibeapispring.entity.Wallet;
 import com.bidvibe.bidvibeapispring.exception.BidVibeException;
@@ -33,6 +34,7 @@ public class WalletService {
 
     private final WalletRepository walletRepository;
     private final TransactionRepository transactionRepository;
+    private final NotificationService notificationService;
 
     // ------------------------------------------------------------------
     // Balance
@@ -162,7 +164,18 @@ public class WalletService {
         walletRepository.save(wallet);
 
         tx.setStatus(Transaction.Status.COMPLETED);
-        return TransactionResponse.from(transactionRepository.save(tx));
+        Transaction saved = transactionRepository.save(tx);
+        
+        // Gửi thông báo cho user
+        notificationService.sendNotification(
+                wallet.getUser(),
+                "Nạp tiền thành công",
+                "Yêu cầu nạp " + formatAmount(tx.getAmount()) + " đã được duyệt. Số dư khả dụng đã được cập nhật.",
+                NotificationPayload.NotificationType.DEPOSIT_APPROVED,
+                transactionId
+        );
+        
+        return TransactionResponse.from(saved);
     }
 
     /**
@@ -178,7 +191,18 @@ public class WalletService {
         walletRepository.save(wallet);
 
         tx.setStatus(Transaction.Status.COMPLETED);
-        return TransactionResponse.from(transactionRepository.save(tx));
+        Transaction saved = transactionRepository.save(tx);
+        
+        // Gửi thông báo cho user
+        notificationService.sendNotification(
+                wallet.getUser(),
+                "Rút tiền thành công",
+                "Yêu cầu rút " + formatAmount(tx.getAmount()) + " đã được duyệt. Vui lòng kiểm tra tài khoản ngân hàng.",
+                NotificationPayload.NotificationType.WITHDRAW_APPROVED,
+                transactionId
+        );
+        
+        return TransactionResponse.from(saved);
     }
 
     /**
@@ -195,7 +219,18 @@ public class WalletService {
         walletRepository.save(wallet);
 
         tx.setStatus(Transaction.Status.CANCELLED);
-        return TransactionResponse.from(transactionRepository.save(tx));
+        Transaction saved = transactionRepository.save(tx);
+        
+        // Gửi thông báo cho user
+        notificationService.sendNotification(
+                wallet.getUser(),
+                "Yêu cầu rút tiền bị từ chối",
+                "Yêu cầu rút " + formatAmount(tx.getAmount()) + " đã bị từ chối. Số tiền đã được hoàn lại vào số dư khả dụng.",
+                NotificationPayload.NotificationType.WITHDRAW_REJECTED,
+                transactionId
+        );
+        
+        return TransactionResponse.from(saved);
     }
 
     // ------------------------------------------------------------------
@@ -227,12 +262,28 @@ public class WalletService {
         Transaction tx = findTransactionById(transactionId);
         validatePending(tx);
         tx.setStatus(Transaction.Status.CANCELLED);
-        return TransactionResponse.from(transactionRepository.save(tx));
+        Transaction saved = transactionRepository.save(tx);
+        
+        // Gửi thông báo cho user
+        Wallet wallet = tx.getWallet();
+        notificationService.sendNotification(
+                wallet.getUser(),
+                "Yêu cầu nạp tiền bị từ chối",
+                "Yêu cầu nạp " + formatAmount(tx.getAmount()) + " đã bị từ chối. Vui lòng liên hệ hỗ trợ nếu có thắc mắc.",
+                NotificationPayload.NotificationType.DEPOSIT_REJECTED,
+                transactionId
+        );
+        
+        return TransactionResponse.from(saved);
     }
 
     // ------------------------------------------------------------------
     // Internal helpers
     // ------------------------------------------------------------------
+
+    private String formatAmount(BigDecimal amount) {
+        return String.format("%,.0f VND", amount);
+    }
 
     public Wallet findWalletByUserId(UUID userId) {
         return walletRepository.findByUserId(userId)

@@ -107,11 +107,13 @@ public class NotificationService {
             case OUTBID           -> Notification.Type.OUTBID;
             case WIN              -> Notification.Type.AUCTION_WON;
             case WATCHLIST_START  -> Notification.Type.WATCHLIST_ALERT;
-            case DEPOSIT_APPROVED,
-                 WITHDRAW_APPROVED -> Notification.Type.FINANCE;
+            case DEPOSIT_APPROVED -> Notification.Type.DEPOSIT_APPROVED;
+            case DEPOSIT_REJECTED -> Notification.Type.DEPOSIT_REJECTED;
+            case WITHDRAW_APPROVED -> Notification.Type.WITHDRAW_APPROVED;
+            case WITHDRAW_REJECTED -> Notification.Type.WITHDRAW_REJECTED;
+            case ITEM_APPROVED    -> Notification.Type.ITEM_APPROVED;
             case ITEM_REJECTED    -> Notification.Type.ITEM_REJECTED;
-            case KICK,
-                 SYSTEM           -> Notification.Type.MODERATION;
+            case KICK, SYSTEM     -> Notification.Type.MODERATION;
         };
     }
 }

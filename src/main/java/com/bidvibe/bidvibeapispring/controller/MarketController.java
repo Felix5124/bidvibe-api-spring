@@ -85,12 +85,16 @@ public class MarketController {
         return ResponseEntity.ok(ApiResponse.ok(result));
     }
 
-    // GET /api/market/{id}/messages
+    // GET /api/market/{id}/messages?page=0&size=50
     @GetMapping("/{id}/messages")
-    public ResponseEntity<ApiResponse<List<MessageResponse>>> getMessages(
+    public ResponseEntity<ApiResponse<PageResponse<MessageResponse>>> getMessages(
             @AuthenticationPrincipal User currentUser,
-            @PathVariable UUID id) {
-        return ResponseEntity.ok(ApiResponse.ok(marketListingService.getListingMessages(currentUser.getId(), id)));
+            @PathVariable UUID id,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "50") int size) {
+        var result = marketListingService.getListingMessages(currentUser.getId(), id,
+                PageRequest.of(page, size, Sort.by("createdAt").ascending()));
+        return ResponseEntity.ok(ApiResponse.ok(PageResponse.of(result)));
     }
 
     // POST /api/market/{id}/messages

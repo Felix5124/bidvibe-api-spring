@@ -13,6 +13,7 @@ import com.bidvibe.bidvibeapispring.constant.ErrorCode;
 import com.bidvibe.bidvibeapispring.dto.item.ItemResponse;
 import com.bidvibe.bidvibeapispring.dto.item.ListItemOnMarketRequest;
 import com.bidvibe.bidvibeapispring.dto.item.SubmitItemRequest;
+import com.bidvibe.bidvibeapispring.dto.ws.NotificationPayload;
 import com.bidvibe.bidvibeapispring.entity.Item;
 import com.bidvibe.bidvibeapispring.entity.MarketListing;
 import com.bidvibe.bidvibeapispring.entity.User;
@@ -37,6 +38,7 @@ public class ItemService {
     private final ItemRepository itemRepository;
     private final MarketListingRepository marketListingRepository;
     private final UserService userService;
+    private final NotificationService notificationService;
 
     // ------------------------------------------------------------------
     // User – Submit item (ký gửi)
@@ -152,7 +154,18 @@ public class ItemService {
             throw new BidVibeException(ErrorCode.ITEM_NOT_AVAILABLE);
         }
         item.setStatus(Item.Status.REJECTED);
-        return ItemResponse.from(itemRepository.save(item));
+        Item saved = itemRepository.save(item);
+        
+        // Gửi thông báo cho user
+        notificationService.sendNotification(
+                item.getSeller(),
+                "Vật phẩm bị từ chối",
+                "Vật phẩm '" + item.getName() + "' đã bị từ chối. Lý do: " + (reason != null ? reason : "Không đạt tiêu chuẩn duyệt"),
+                NotificationPayload.NotificationType.ITEM_REJECTED,
+                itemId
+        );
+        
+        return ItemResponse.from(saved);
     }
 
     /**
@@ -167,7 +180,18 @@ public class ItemService {
         if (tags != null) item.setTags(tags);
         item.setRarity(rarity);
         item.setStatus(Item.Status.APPROVED);
-        return ItemResponse.from(itemRepository.save(item));
+        Item saved = itemRepository.save(item);
+        
+        // Gửi thông báo cho user
+        notificationService.sendNotification(
+                item.getSeller(),
+                "Vật phẩm đã được duyệt",
+                "Vật phẩm '" + item.getName() + "' đã được duyệt và sẵn sàng để đưa lên phiên đấu giá.",
+                NotificationPayload.NotificationType.ITEM_APPROVED,
+                itemId
+        );
+        
+        return ItemResponse.from(saved);
     }
 
     /**

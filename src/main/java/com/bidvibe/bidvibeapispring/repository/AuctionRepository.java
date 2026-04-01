@@ -2,6 +2,7 @@ package com.bidvibe.bidvibeapispring.repository;
 
 import com.bidvibe.bidvibeapispring.entity.Auction;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -18,6 +19,9 @@ public interface AuctionRepository extends JpaRepository<Auction, UUID> {
 
     /** Tất cả auctions trong một phiên, sắp theo thứ tự. */
     List<Auction> findBySessionIdOrderByOrderIndex(UUID sessionId);
+
+    /** Tất cả auctions trong một phiên với phân trang. */
+    Page<Auction> findBySessionId(UUID sessionId, Pageable pageable);
 
     /** Auction đang ACTIVE trong một phiên (dùng cho Real-time room). */
     Optional<Auction> findBySessionIdAndStatus(UUID sessionId, Auction.Status status);

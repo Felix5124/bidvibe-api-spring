@@ -15,6 +15,7 @@ import com.bidvibe.bidvibeapispring.entity.User;
 import com.bidvibe.bidvibeapispring.exception.BidVibeException;
 import com.bidvibe.bidvibeapispring.repository.AuctionRepository;
 import com.bidvibe.bidvibeapispring.repository.BidRepository;
+import com.bidvibe.bidvibeapispring.repository.ItemRepository;
 import com.bidvibe.bidvibeapispring.repository.WatchlistRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -45,6 +46,7 @@ public class AuctionService {
 
     private final AuctionRepository auctionRepository;
     private final BidRepository bidRepository;
+    private final ItemRepository itemRepository;
     private final WatchlistRepository watchlistRepository;
     private final AuctionSessionService sessionService;
     private final ItemService itemService;
@@ -159,6 +161,7 @@ public class AuctionService {
     /**
      * Kết thúc auction: xác định winner, chuyển item, thanh toán.
      * Gọi từ Admin hoặc Scheduler khi hết giờ.
+     * Nếu không có ai đấu giá, item được trả về kho người bán.
      */
     @Transactional
     public void endAuction(Auction auction) {
@@ -174,7 +177,7 @@ public class AuctionService {
         // Persist status immediately — ensures auction leaves ACTIVE even if payment fails
         auctionRepository.save(a);
 
-        bidRepository.findHighestBidInAuction(a.getId()).ifPresent(winningBid -> {
+        bidRepository.findHighestBidInAuction(a.getId()).ifPresentOrElse(winningBid -> {
             try {
                 User winner = winningBid.getUser();
                 a.setWinner(winner);
@@ -202,6 +205,22 @@ public class AuctionService {
             } catch (Exception e) {
                 log.error("[endAuction] Lỗi xử lý thanh toán cho auction {}: {}", a.getId(), e.getMessage(), e);
             }
+        }, () -> {
+            // Không có ai đấu giá - trả item về kho người bán
+            log.info("[endAuction] Auction {} kết thúc không có người đấu giá. Trả item về kho người bán.", a.getId());
+            Item item = a.getItem();
+            item.setStatus(Item.Status.IN_INVENTORY);
+            item.setCurrentOwner(item.getSeller());
+            itemRepository.save(item);
+
+            // Thông báo cho người bán
+            notificationService.sendNotification(
+                    item.getSeller(),
+                    "Phiên đấu giá kết thúc không có người mua",
+                    "Vật phẩm \"" + item.getName() + "\" đã kết thúc phiên đấu giá mà không có ai đặt giá. " +
+                            "Vật phẩm đã được trả về kho của bạn.",
+                    com.bidvibe.bidvibeapispring.dto.ws.NotificationPayload.NotificationType.SYSTEM,
+                    a.getId());
         });
 
         broadcastAuctionUpdate(a);

@@ -10,6 +10,8 @@ import com.bidvibe.bidvibeapispring.exception.BidVibeException;
 import com.bidvibe.bidvibeapispring.repository.AuctionRepository;
 import com.bidvibe.bidvibeapispring.repository.MessageRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -81,6 +83,14 @@ public class MessageService {
         return messageRepository
                 .findByAuctionIdAndReceiverIsNullOrderByCreatedAtAsc(auctionId)
                 .stream().map(MessageResponse::from).toList();
+    }
+
+    /** Lịch sử Chat Live trong phòng đấu giá (phân trang) */
+    @Transactional(readOnly = true)
+    public Page<MessageResponse> getLiveChatHistory(UUID auctionId, Pageable pageable) {
+        return messageRepository
+                .findByAuctionIdAndReceiverIsNull(auctionId, pageable)
+                .map(MessageResponse::from);
     }
 
     /** GET /api/market/chat-history – Chat P2P giữa 2 user */

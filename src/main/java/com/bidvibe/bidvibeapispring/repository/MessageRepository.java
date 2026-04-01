@@ -57,6 +57,11 @@ public interface MessageRepository extends JpaRepository<Message, UUID> {
     List<Message> findByMarketListingIdOrderByCreatedAtAsc(UUID marketListingId);
 
     /**
+     * Lịch sử chat P2P gắn với một market listing cụ thể (phân trang).
+     */
+    Page<Message> findByMarketListingId(UUID marketListingId, Pageable pageable);
+
+    /**
      * Danh sách các cuộc hội thoại P2P gần nhất của user –
      * lấy tin nhắn cuối cùng của mỗi cuộc trò chuyện.
      */

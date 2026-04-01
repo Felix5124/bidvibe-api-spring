@@ -12,8 +12,13 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+import java.util.UUID;
+
 /**
+ * Rating & Feedback APIs
  * POST /api/ratings – tạo đánh giá sau giao dịch
+ * GET /api/ratings/user/{userId} – lấy đánh giá của user
  */
 @RestController
 @RequestMapping("/api/ratings")
@@ -29,5 +34,12 @@ public class RatingController {
             @Valid @RequestBody CreateRatingRequest req) {
         var result = ratingService.createRating(currentUser.getId(), req);
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.created(result));
+    }
+
+    // GET /api/ratings/user/{userId}
+    @GetMapping("/user/{userId}")
+    public ResponseEntity<ApiResponse<List<RatingResponse>>> getUserRatings(@PathVariable UUID userId) {
+        var result = ratingService.getRatingsByUser(userId);
+        return ResponseEntity.ok(ApiResponse.ok(result));
     }
 }

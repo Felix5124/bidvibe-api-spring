@@ -49,7 +49,10 @@ public class NotificationPayload {
         WIN,
         WATCHLIST_START,
         DEPOSIT_APPROVED,
+        DEPOSIT_REJECTED,
         WITHDRAW_APPROVED,
+        WITHDRAW_REJECTED,
+        ITEM_APPROVED,
         ITEM_REJECTED,
         KICK,
         SYSTEM

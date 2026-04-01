@@ -37,17 +37,17 @@ public class RatingService {
     // Create
     // ------------------------------------------------------------------
 
-    /** POST /api/users/rate */
+    /** POST /api/ratings */
     @Transactional
     public RatingResponse createRating(UUID fromUserId, CreateRatingRequest req) {
         User fromUser = userService.findById(fromUserId);
-        User toUser = userService.findById(req.getToUserId());
 
         Rating.RatingBuilder builder = Rating.builder()
                 .fromUser(fromUser)
-                .toUser(toUser)
                 .stars(req.getStars())
                 .comment(req.getComment());
+
+        User toUser = null;
 
         if (req.getAuctionId() != null) {
             // Path: đánh giá sau đấu giá
@@ -60,6 +60,16 @@ public class RatingService {
                 throw new BidVibeException(ErrorCode.RATING_NOT_ELIGIBLE);
             }
             builder.auction(auction);
+
+            // Xác định người được đánh giá: nếu fromUser là winner → đánh giá seller, ngược lại
+            if (auction.getWinner() != null && auction.getWinner().getId().equals(fromUserId)) {
+                toUser = auction.getItem().getSeller();
+            } else {
+                toUser = auction.getWinner();
+                if (toUser == null) {
+                    throw new BidVibeException(ErrorCode.RATING_NOT_ELIGIBLE, "Chưa có người thắng để đánh giá");
+                }
+            }
         } else if (req.getMarketListingId() != null) {
             // Path: đánh giá sau giao dịch Chợ Đen
             if (ratingRepository.existsByFromUserIdAndMarketListingId(fromUserId, req.getMarketListingId())) {
@@ -71,14 +81,25 @@ public class RatingService {
                 throw new BidVibeException(ErrorCode.RATING_NOT_ELIGIBLE);
             }
             builder.marketListing(listing);
+
+            // Xác định người được đánh giá: nếu fromUser là seller → đánh giá buyer, ngược lại
+            if (listing.getSeller().getId().equals(fromUserId)) {
+                toUser = listing.getBuyer();
+            } else {
+                toUser = listing.getSeller();
+            }
+            if (toUser == null) {
+                throw new BidVibeException(ErrorCode.RATING_NOT_ELIGIBLE, "Chưa có người mua để đánh giá");
+            }
         } else {
-            throw new BidVibeException(ErrorCode.VALIDATION_FAILED);
+            throw new BidVibeException(ErrorCode.VALIDATION_FAILED, "Phải cung cấp auctionId hoặc marketListingId");
         }
 
+        builder.toUser(toUser);
         Rating rating = ratingRepository.save(builder.build());
 
         // Cập nhật điểm uy tín của người được đánh giá
-        userService.refreshReputationScore(req.getToUserId());
+        userService.refreshReputationScore(toUser.getId());
 
         return RatingResponse.from(rating);
     }

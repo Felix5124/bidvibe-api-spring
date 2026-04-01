@@ -193,6 +193,14 @@ public class AuctionSessionService {
                 .stream().map(AuctionResponse::from).toList();
     }
 
+    /** GET /api/sessions/{id}/auctions – paginated version. */
+    @Transactional(readOnly = true)
+    public Page<AuctionResponse> getSessionAuctions(UUID sessionId, Pageable pageable) {
+        findById(sessionId); // validate exists
+        return auctionRepository.findBySessionId(sessionId, pageable)
+                .map(AuctionResponse::from);
+    }
+
     @Transactional(readOnly = true)
     public List<AuctionSessionResponse> getSessionsByStatus(AuctionSession.Status status) {
         return sessionRepository.findByStatus(status)

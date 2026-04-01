@@ -12,17 +12,15 @@ import lombok.Setter;
 import java.util.UUID;
 
 /**
- * Request body cho POST /api/users/rate.
+ * Request body cho POST /api/ratings.
  * Đánh giá sao và nhận xét sau giao dịch thành công.
  * Phải đặt đúng một trong hai: auctionId hoặc marketListingId.
+ * toUserId sẽ được tự động xác định từ auction/marketListing.
  */
 @Getter
 @Setter
 @NoArgsConstructor
 public class CreateRatingRequest {
-
-    @NotNull(message = "ID người được đánh giá không được để trống")
-    private UUID toUserId;
 
     /** Đặt nếu đánh giá sau đấu giá. */
     private UUID auctionId;

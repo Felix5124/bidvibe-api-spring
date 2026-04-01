@@ -18,7 +18,6 @@ import lombok.Setter;
 @NoArgsConstructor
 public class PlaceBidRequest {
 
-    @NotNull(message = "ID phiên đấu giá không được để trống")
     private UUID auctionId;
 
     @NotNull(message = "Số tiền đặt giá không được để trống")

@@ -18,7 +18,6 @@ import lombok.Setter;
 @NoArgsConstructor
 public class SealedBidRequest {
 
-    @NotNull(message = "ID phiên đấu giá không được để trống")
     private UUID auctionId;
 
     @NotNull(message = "Giá thầu bí mật không được để trống")

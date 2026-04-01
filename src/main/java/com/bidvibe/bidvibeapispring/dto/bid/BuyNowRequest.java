@@ -2,7 +2,6 @@ package com.bidvibe.bidvibeapispring.dto.bid;
 
 import java.util.UUID;
 
-import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -16,6 +15,5 @@ import lombok.Setter;
 @NoArgsConstructor
 public class BuyNowRequest {
 
-    @NotNull(message = "ID phiên đấu giá không được để trống")
     private UUID auctionId;
 }

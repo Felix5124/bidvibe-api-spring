@@ -17,7 +17,6 @@ import java.util.UUID;
 @NoArgsConstructor
 public class SetProxyBidRequest {
 
-    @NotNull(message = "ID phiên đấu giá không được để trống")
     private UUID auctionId;
 
     @NotNull(message = "Hạn mức tối đa không được để trống")

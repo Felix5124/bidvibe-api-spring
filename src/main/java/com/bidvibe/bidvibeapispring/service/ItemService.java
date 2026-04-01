@@ -176,11 +176,26 @@ public class ItemService {
     @Transactional
     public Item approveAndMoveToAuction(UUID itemId, Item.Rarity rarity) {
         Item item = findById(itemId);
-        if (item.getStatus() != Item.Status.PENDING) {
+        if (item.getStatus() != Item.Status.PENDING && item.getStatus() != Item.Status.APPROVED) {
             throw new BidVibeException(ErrorCode.ITEM_NOT_AVAILABLE);
         }
-        item.setRarity(rarity);
+        if (rarity != null) {
+            item.setRarity(rarity);
+        }
         item.setStatus(Item.Status.IN_AUCTION);
+        return itemRepository.save(item);
+    }
+
+    /**
+     * Trả vật phẩm từ trạng thái IN_AUCTION về APPROVED khi gỡ khỏi phiên chưa chạy.
+     */
+    @Transactional
+    public Item moveBackToApprovedFromAuction(UUID itemId) {
+        Item item = findById(itemId);
+        if (item.getStatus() != Item.Status.IN_AUCTION) {
+            throw new BidVibeException(ErrorCode.ITEM_NOT_AVAILABLE);
+        }
+        item.setStatus(Item.Status.APPROVED);
         return itemRepository.save(item);
     }
 

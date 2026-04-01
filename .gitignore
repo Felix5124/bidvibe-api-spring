@@ -46,3 +46,4 @@ build/
 .vscode/
 application.properties
 doc/
+.env

@@ -94,7 +94,9 @@ public class AdminAuctionSessionController {
     // POST /api/admin/sessions/{id}/start
     @PostMapping("/api/admin/sessions/{id}/start")
     public ResponseEntity<ApiResponse<AuctionSessionResponse>> activateSession(@PathVariable UUID id) {
-        return ResponseEntity.ok(ApiResponse.ok(auctionSessionService.activateSession(id)));
+        var result = auctionSessionService.activateSession(id);
+        auctionService.startFirstWaitingAuction(id);
+        return ResponseEntity.ok(ApiResponse.ok(result));
     }
 
     // POST /api/admin/sessions/{id}/pause
@@ -106,7 +108,9 @@ public class AdminAuctionSessionController {
     // POST /api/admin/sessions/{id}/resume
     @PostMapping("/api/admin/sessions/{id}/resume")
     public ResponseEntity<ApiResponse<AuctionSessionResponse>> resumeSession(@PathVariable UUID id) {
-        return ResponseEntity.ok(ApiResponse.ok(auctionSessionService.resumeSession(id)));
+        var result = auctionSessionService.resumeSession(id);
+        auctionService.startFirstWaitingAuction(id);
+        return ResponseEntity.ok(ApiResponse.ok(result));
     }
 
     // POST /api/admin/sessions/{id}/stop

@@ -83,9 +83,7 @@ public class AuctionSessionService {
         }
         Auction auction = auctionRepository.findById(auctionId)
                 .orElseThrow(() -> new BidVibeException(ErrorCode.AUCTION_NOT_FOUND));
-        Item item = auction.getItem();
-        item.setStatus(Item.Status.APPROVED);
-        itemService.approveAndMoveToAuction(item.getId(), item.getRarity()); // keep rarity
+        itemService.moveBackToApprovedFromAuction(auction.getItem().getId());
         auctionRepository.delete(auction);
     }
 

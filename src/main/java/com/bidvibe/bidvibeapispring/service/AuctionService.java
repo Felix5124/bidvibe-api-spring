@@ -205,6 +205,51 @@ public class AuctionService {
         });
 
         broadcastAuctionUpdate(a);
+
+        // Với đấu giá tuần tự trong một phiên: kết thúc phòng hiện tại -> mở phòng WAITING kế tiếp.
+        // Nếu không còn phòng WAITING thì đóng phiên.
+        startNextWaitingAuctionOrComplete(a.getSession().getId());
+    }
+
+    /**
+     * Khi phiên vừa được ACTIVE: tự động mở phòng WAITING đầu tiên (nếu có).
+     */
+    @Transactional
+    public void startFirstWaitingAuction(UUID sessionId) {
+        AuctionSession session = sessionService.findById(sessionId);
+        if (session.getStatus() != AuctionSession.Status.ACTIVE) {
+            return;
+        }
+
+        // Tránh mở chồng nếu đã có phòng ACTIVE.
+        if (auctionRepository.findBySessionIdAndStatus(sessionId, Auction.Status.ACTIVE).isPresent()) {
+            return;
+        }
+
+        auctionRepository.findNextWaitingInSession(sessionId)
+                .ifPresent(this::startAuction);
+    }
+
+    /**
+     * Kết thúc một phòng rồi tự động mở phòng kế tiếp.
+     * Nếu không còn phòng WAITING thì chuyển phiên sang COMPLETED.
+     */
+    @Transactional
+    public void startNextWaitingAuctionOrComplete(UUID sessionId) {
+        AuctionSession session = sessionService.findById(sessionId);
+        if (session.getStatus() != AuctionSession.Status.ACTIVE) {
+            return;
+        }
+
+        if (auctionRepository.findBySessionIdAndStatus(sessionId, Auction.Status.ACTIVE).isPresent()) {
+            return;
+        }
+
+        auctionRepository.findNextWaitingInSession(sessionId)
+                .ifPresentOrElse(
+                        this::startAuction,
+                        () -> sessionService.completeSession(sessionId)
+                );
     }
 
     private void cancelAuction(Auction auction) {

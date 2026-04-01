@@ -51,6 +51,9 @@ public enum ErrorCode {
     SESSION_NOT_FOUND       (4001, HttpStatus.NOT_FOUND,     "Không tìm thấy phiên đấu giá."),
     SESSION_NOT_ACTIVE      (4002, HttpStatus.BAD_REQUEST,   "Phiên đấu giá không đang hoạt động."),
     SESSION_ALREADY_STARTED (4003, HttpStatus.CONFLICT,      "Phiên đấu giá đã được bắt đầu."),
+    SESSION_NOT_PAUSED      (4004, HttpStatus.BAD_REQUEST,   "Phiên đấu giá không đang tạm dừng."),
+    ITEM_ALREADY_IN_SESSION (4005, HttpStatus.CONFLICT,      "Vật phẩm đã có trong một phiên đấu giá khác đang chờ hoặc đang diễn ra."),
+    DUTCH_AUCTION_REQUIRES_MIN_PRICE (4006, HttpStatus.BAD_REQUEST, "Đấu giá giảm dần (Dutch) yêu cầu giá sàn (minPrice) phải lớn hơn 0."),
 
     // -------------------------------------------------------------------------
     // AUCTION

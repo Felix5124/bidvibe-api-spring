@@ -29,5 +29,8 @@ public interface ItemRepository extends JpaRepository<Item, UUID> {
     /** Kiểm tra xem item có đang trong thời gian cooldown không. */
     @Query("SELECT CASE WHEN i.cooldownUntil IS NOT NULL AND i.cooldownUntil > CURRENT_TIMESTAMP THEN TRUE ELSE FALSE END FROM Item i WHERE i.id = :itemId")
     boolean isInCooldown(@Param("itemId") UUID itemId);
+
+    /** Lấy tất cả vật phẩm của người dùng (bất kể trạng thái) */
+    Page<Item> findByCurrentOwnerIdOrderByCreatedAtDesc(UUID ownerId, Pageable pageable);
 }
 

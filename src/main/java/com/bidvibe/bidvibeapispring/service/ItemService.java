@@ -65,8 +65,9 @@ public class ItemService {
     /** GET /api/items/inventory */
     @Transactional(readOnly = true)
     public Page<ItemResponse> getInventory(UUID userId, Pageable pageable) {
+        // SỬA DÒNG NÀY: Bỏ điều kiện Item.Status.IN_INVENTORY để lấy TẤT CẢ trạng thái
         return itemRepository
-                .findByCurrentOwnerIdAndStatus(userId, Item.Status.IN_INVENTORY, pageable)
+                .findByCurrentOwnerIdOrderByCreatedAtDesc(userId, pageable)
                 .map(ItemResponse::from);
     }
 

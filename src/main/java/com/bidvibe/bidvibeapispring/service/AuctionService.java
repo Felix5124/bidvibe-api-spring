@@ -355,11 +355,12 @@ public class AuctionService {
             throw new BidVibeException(ErrorCode.BID_NOT_FOUND);
         }
 
-        // Hoàn tiền locked cho user có bid bị xóa
-        walletService.unlockFunds(bid.getUser().getId(), bid.getAmount());
+        User affectedUser = bid.getUser();
+        BigDecimal bidAmount = bid.getAmount();
+
+        walletService.unlockFunds(affectedUser.getId(), bidAmount);
         bidRepository.delete(bid);
 
-        // Tính lại currentPrice và winner từ bid cao nhất còn lại
         bidRepository.findHighestBidInAuction(auctionId).ifPresentOrElse(highest -> {
             auction.setCurrentPrice(highest.getAmount());
             auction.setWinner(highest.getUser());
@@ -369,6 +370,15 @@ public class AuctionService {
         });
 
         auctionRepository.save(auction);
+
+        notificationService.sendNotification(
+                affectedUser,
+                "Lượt đặt giá đã bị xóa",
+                "Lượt đặt giá " + bidAmount.toPlainString() + " VND của bạn trong phiên đấu giá \"" 
+                        + auction.getItem().getName() + "\" đã bị quản trị viên xóa.",
+                com.bidvibe.bidvibeapispring.dto.ws.NotificationPayload.NotificationType.SYSTEM,
+                auction.getId());
+
         broadcastAuctionUpdate(auction);
     }
 }

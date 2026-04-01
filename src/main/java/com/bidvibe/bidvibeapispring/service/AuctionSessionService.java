@@ -55,6 +55,16 @@ public class AuctionSessionService {
             throw new BidVibeException(ErrorCode.SESSION_ALREADY_STARTED);
         }
 
+        if (session.getType() == AuctionSession.Type.DUTCH) {
+            if (req.getMinPrice() == null || req.getMinPrice().compareTo(java.math.BigDecimal.ZERO) <= 0) {
+                throw new BidVibeException(ErrorCode.DUTCH_AUCTION_REQUIRES_MIN_PRICE);
+            }
+        }
+
+        if (auctionRepository.findActiveByItemId(req.getItemId()).isPresent()) {
+            throw new BidVibeException(ErrorCode.ITEM_ALREADY_IN_SESSION);
+        }
+
         Item item = itemService.approveAndMoveToAuction(req.getItemId(), req.getRarity());
 
         Auction auction = auctionRepository.save(Auction.builder()
@@ -106,13 +116,14 @@ public class AuctionSessionService {
             throw new BidVibeException(ErrorCode.SESSION_NOT_ACTIVE);
         }
         session.setStatus(AuctionSession.Status.PAUSED);
-        // Tính remaining seconds của auction đang chạy
         auctionRepository.findBySessionIdAndStatus(sessionId, Auction.Status.ACTIVE)
                 .ifPresent(a -> {
                     long remaining = a.getEndTime() != null
                             ? Math.max(0, a.getEndTime().getEpochSecond() - Instant.now().getEpochSecond())
-                            : 0;
+                            : AppConstants.ENGLISH_AUCTION_DURATION_SECONDS;
                     session.setRemainingSeconds((int) remaining);
+                    a.setStatus(Auction.Status.WAITING);
+                    auctionRepository.save(a);
                 });
         return AuctionSessionResponse.from(sessionRepository.save(session));
     }
@@ -122,14 +133,17 @@ public class AuctionSessionService {
     public AuctionSessionResponse resumeSession(UUID sessionId) {
         AuctionSession session = findById(sessionId);
         if (session.getStatus() != AuctionSession.Status.PAUSED) {
-            throw new BidVibeException(ErrorCode.SESSION_NOT_ACTIVE);
+            throw new BidVibeException(ErrorCode.SESSION_NOT_PAUSED);
         }
         session.setStatus(AuctionSession.Status.ACTIVE);
-        // Khôi phục end_time của auction đang chậm
-        auctionRepository.findBySessionIdAndStatus(sessionId, Auction.Status.ACTIVE)
+        int remainingSeconds = session.getRemainingSeconds() != null 
+                ? session.getRemainingSeconds() 
+                : AppConstants.ENGLISH_AUCTION_DURATION_SECONDS;
+        final int finalRemaining = remainingSeconds;
+        auctionRepository.findBySessionIdAndStatus(sessionId, Auction.Status.WAITING)
                 .ifPresent(a -> {
-                    int remaining = session.getRemainingSeconds() != null ? session.getRemainingSeconds() : 30;
-                    a.setEndTime(Instant.now().plusSeconds(remaining));
+                    a.setEndTime(Instant.now().plusSeconds(finalRemaining));
+                    a.setStatus(Auction.Status.ACTIVE);
                     auctionRepository.save(a);
                 });
         session.setRemainingSeconds(null);

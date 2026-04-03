@@ -72,26 +72,29 @@ public class UserService {
      * Tìm hoặc tạo User từ claims Supabase JWT.
      * {@code sub} là UUID duy nhất của user trong Supabase Auth.
      * {@code email} dùng để tra cứu User trong database nội bộ.
+     * {@code avatarUrl} là URL avatar từ Google OAuth (nếu có).
      * Gọi từ JwtAuthFilter mỗi request cần xác thực.
      */
     @Transactional
-    public User findOrCreate(String sub, String email) {
+    public User findOrCreate(String sub, String email, String avatarUrl) {
         User user = userRepository.findByEmail(email)
             .orElseGet(() -> {
-                // Derive a safe default nickname from the email prefix
                 String defaultNickname = email.contains("@")
                     ? email.substring(0, email.indexOf('@'))
                     : email;
-                return userRepository.save(
-                    User.builder()
-                        .email(email)
-                        .nickname(defaultNickname)
-                        .role(User.Role.USER)
-                        .build()
-                );
+                
+                User.UserBuilder builder = User.builder()
+                    .email(email)
+                    .nickname(defaultNickname)
+                    .role(User.Role.USER);
+                
+                if (avatarUrl != null && !avatarUrl.isBlank()) {
+                    builder.avatarUrl(avatarUrl);
+                }
+                
+                return userRepository.save(builder.build());
             });
 
-        // Ensure every user has a wallet to avoid WALLET_NOT_FOUND at first usage.
         walletRepository.findByUserId(user.getId())
             .orElseGet(() -> walletRepository.save(Wallet.builder().user(user).build()));
 

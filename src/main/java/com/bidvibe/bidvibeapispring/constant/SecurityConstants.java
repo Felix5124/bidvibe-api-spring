@@ -36,6 +36,12 @@ public final class SecurityConstants {
      */
     public static final String JWT_CLAIM_ROLE = "role";
 
+    /**
+     * Claim chứa user_metadata từ Supabase JWT.
+     * Bao gồm các thông tin như avatar_url, full_name, v.v.
+     */
+    public static final String JWT_CLAIM_USER_METADATA = "user_metadata";
+
     // -------------------------------------------------------------------------
     // URL WHITELIST – Không cần xác thực
     // -------------------------------------------------------------------------

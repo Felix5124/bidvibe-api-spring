@@ -22,6 +22,7 @@ import com.bidvibe.bidvibeapispring.repository.ItemRepository;
 import com.bidvibe.bidvibeapispring.repository.MarketListingRepository;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * Xử lý nghiệp vụ Vật phẩm:
@@ -31,6 +32,7 @@ import lombok.RequiredArgsConstructor;
  * - Tìm kiếm Chợ Đen
  * - Xác nhận nhận hàng (confirm receipt)
  */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ItemService {
@@ -190,19 +192,31 @@ public class ItemService {
         if (item.getStatus() != Item.Status.PENDING) {
             throw new BidVibeException(ErrorCode.ITEM_NOT_AVAILABLE);
         }
-        if (tags != null) item.setTags(tags);
-        item.setRarity(rarity);
+        if (tags != null) {
+            item.setTags(tags);
+        }
+        if (rarity != null) {
+            item.setRarity(rarity);
+        }
         item.setStatus(Item.Status.APPROVED);
         Item saved = itemRepository.save(item);
         
-        // Gửi thông báo cho user
-        notificationService.sendNotification(
-                item.getSeller(),
-                "Vật phẩm đã được duyệt",
-                "Vật phẩm '" + item.getName() + "' đã được duyệt và sẵn sàng để đưa lên phiên đấu giá.",
-                NotificationPayload.NotificationType.ITEM_APPROVED,
-                itemId
-        );
+        // Gửi thông báo cho user (nếu có seller)
+        try {
+            User seller = saved.getSeller();
+            if (seller != null) {
+                notificationService.sendNotification(
+                        seller,
+                        "Vật phẩm đã được duyệt",
+                        "Vật phẩm '" + saved.getName() + "' đã được duyệt và sẵn sàng để đưa lên phiên đấu giá.",
+                        NotificationPayload.NotificationType.ITEM_APPROVED,
+                        itemId
+                );
+            }
+        } catch (Exception e) {
+            // Log lỗi nhưng không fail transaction
+            log.warn("Failed to send notification for approved item {}: {}", itemId, e.getMessage());
+        }
         
         return ItemResponse.from(saved);
     }

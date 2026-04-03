@@ -59,8 +59,17 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             String sub   = getClaimAsString(claims, SecurityConstants.JWT_CLAIM_SUB);
             String email = getClaimAsString(claims, SecurityConstants.JWT_CLAIM_EMAIL);
 
+            String avatarUrl = null;
+            JsonNode userMetadata = claims.get(SecurityConstants.JWT_CLAIM_USER_METADATA);
+            if (userMetadata != null && !userMetadata.isNull()) {
+                JsonNode avatarNode = userMetadata.get("avatar_url");
+                if (avatarNode != null && !avatarNode.isNull()) {
+                    avatarUrl = avatarNode.asText();
+                }
+            }
+
             if (email != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-                User user = userService.findOrCreate(sub, email);
+                User user = userService.findOrCreate(sub, email, avatarUrl);
                 String role = "ROLE_" + user.getRole().name();
 
                 UsernamePasswordAuthenticationToken authToken =

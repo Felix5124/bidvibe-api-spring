@@ -120,6 +120,19 @@ public class ItemService {
         return ItemResponse.from(itemRepository.save(item));
     }
 
+    /** DELETE /api/items/{id} – chỉ cho phép chủ sở hữu xóa vật phẩm đã bị từ chối. */
+    @Transactional
+    public void deleteRejectedItem(UUID userId, UUID itemId) {
+        Item item = findById(itemId);
+        validateOwner(item, userId);
+
+        if (item.getStatus() != Item.Status.REJECTED) {
+            throw new BidVibeException(ErrorCode.ITEM_DELETE_NOT_ALLOWED);
+        }
+
+        itemRepository.delete(item);
+    }
+
     // ------------------------------------------------------------------
     // Admin
     // ------------------------------------------------------------------

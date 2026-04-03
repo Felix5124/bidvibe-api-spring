@@ -66,6 +66,15 @@ public class ItemController {
         return ResponseEntity.ok(ApiResponse.ok(itemService.confirmReceipt(currentUser.getId(), id)));
     }
 
+    // DELETE /api/items/{id}
+    @DeleteMapping("/{id}")
+    public ResponseEntity<ApiResponse<Void>> deleteRejectedItem(
+            @AuthenticationPrincipal User currentUser,
+            @PathVariable UUID id) {
+        itemService.deleteRejectedItem(currentUser.getId(), id);
+        return ResponseEntity.ok(ApiResponse.ok(null));
+    }
+
     // POST /api/items/list-on-market
     @PostMapping("/list-on-market")
     public ResponseEntity<ApiResponse<ItemResponse>> listOnMarket(

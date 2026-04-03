@@ -44,6 +44,7 @@ public enum ErrorCode {
     ITEM_IN_COOLDOWN        (3003, HttpStatus.BAD_REQUEST,   "Vật phẩm đang trong thời gian khóa chuyển nhượng (12h)."),
     ITEM_NOT_AVAILABLE      (3004, HttpStatus.BAD_REQUEST,   "Vật phẩm không ở trạng thái phù hợp để thực hiện hành động này."),
     ITEM_NOT_IN_INVENTORY   (3005, HttpStatus.BAD_REQUEST,   "Vật phẩm không có trong kho của bạn."),
+    ITEM_DELETE_NOT_ALLOWED (3006, HttpStatus.BAD_REQUEST,   "Chỉ có thể xóa vật phẩm đã bị từ chối."),
 
     // -------------------------------------------------------------------------
     // AUCTION SESSION
@@ -54,6 +55,7 @@ public enum ErrorCode {
     SESSION_NOT_PAUSED      (4004, HttpStatus.BAD_REQUEST,   "Phiên đấu giá không đang tạm dừng."),
     ITEM_ALREADY_IN_SESSION (4005, HttpStatus.CONFLICT,      "Vật phẩm đã có trong một phiên đấu giá khác đang chờ hoặc đang diễn ra."),
     DUTCH_AUCTION_REQUIRES_MIN_PRICE (4006, HttpStatus.BAD_REQUEST, "Đấu giá giảm dần (Dutch) yêu cầu giá sàn (minPrice) phải lớn hơn 0."),
+    AUCTION_END_TIME_TOO_EARLY (4007, HttpStatus.BAD_REQUEST, "Thời gian kết thúc vật phẩm không đủ tối thiểu 10 phút/món trong phiên."),
 
     // -------------------------------------------------------------------------
     // AUCTION
@@ -65,6 +67,7 @@ public enum ErrorCode {
     AUCTION_BID_ON_OWN_ITEM (5005, HttpStatus.BAD_REQUEST,   "Bạn không thể đấu giá trên vật phẩm của chính mình."),
     AUCTION_SEALED_DUPLICATE(5006, HttpStatus.CONFLICT,      "Bạn đã đặt giá kín cho lượt đấu giá này rồi."),
     BID_NOT_FOUND           (5007, HttpStatus.NOT_FOUND,     "Không tìm thấy lượt đặt giá."),
+    AUCTION_TIMER_DECREASE_NOT_ALLOWED (5008, HttpStatus.BAD_REQUEST, "Chỉ được tăng thời gian đấu giá, không được giảm."),
 
     // -------------------------------------------------------------------------
     // PROXY BID

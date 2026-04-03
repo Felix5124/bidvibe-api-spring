@@ -17,6 +17,9 @@ public final class AppConstants {
     /** Thời gian mỗi món đấu giá (English): 2 phút = 120 giây. */
     public static final int ENGLISH_AUCTION_DURATION_SECONDS = 120;
 
+    /** Thời lượng tối thiểu cho mỗi vật phẩm đấu giá: 10 phút = 600 giây. */
+    public static final int MIN_AUCTION_DURATION_SECONDS = 10 * 60;
+
     /**
      * Popcorn Bidding: nếu có bid trong 30 giây cuối,
      * đồng hồ reset về 30 giây.

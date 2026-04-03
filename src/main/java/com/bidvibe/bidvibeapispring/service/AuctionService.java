@@ -125,8 +125,12 @@ public class AuctionService {
 
         // English auction: endTime = now + 2 phút
         if (auction.getSession().getType() == AuctionSession.Type.ENGLISH) {
+            int durationSeconds = auction.getDurationSeconds() != null
+                ? auction.getDurationSeconds()
+                : AppConstants.MIN_AUCTION_DURATION_SECONDS;
+            durationSeconds = Math.max(durationSeconds, AppConstants.MIN_AUCTION_DURATION_SECONDS);
             auction.setEndTime(
-                    Instant.now().plusSeconds(AppConstants.ENGLISH_AUCTION_DURATION_SECONDS));
+                Instant.now().plusSeconds(durationSeconds));
         }
         auctionRepository.save(auction);
 
@@ -313,10 +317,26 @@ public class AuctionService {
 
     /** Admin reset đồng hồ của một auction. */
     @Transactional
-    public AuctionResponse resetAuctionTimer(UUID auctionId) {
+    public AuctionResponse resetAuctionTimer(UUID auctionId, Integer minutes) {
         Auction auction = findById(auctionId);
-        auction.setEndTime(Instant.now().plusSeconds(
-                auction.getDurationSeconds() != null ? auction.getDurationSeconds() : AppConstants.ENGLISH_AUCTION_DURATION_SECONDS));
+        int incrementSeconds = minutes != null
+                ? minutes * 60
+                : (auction.getDurationSeconds() != null
+                ? auction.getDurationSeconds()
+            : AppConstants.MIN_AUCTION_DURATION_SECONDS);
+
+        if (incrementSeconds < AppConstants.MIN_AUCTION_DURATION_SECONDS) {
+            throw new BidVibeException(ErrorCode.AUCTION_END_TIME_TOO_EARLY);
+        }
+
+        Instant now = Instant.now();
+        Instant baseTime = (auction.getEndTime() != null && auction.getEndTime().isAfter(now))
+                ? auction.getEndTime()
+                : now;
+        Instant proposedEndTime = baseTime.plusSeconds(incrementSeconds);
+
+        auction.setDurationSeconds(incrementSeconds);
+        auction.setEndTime(proposedEndTime);
         return AuctionResponse.from(auctionRepository.save(auction));
     }
 

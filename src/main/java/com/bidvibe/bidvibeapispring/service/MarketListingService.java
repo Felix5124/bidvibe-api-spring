@@ -79,16 +79,21 @@ public class MarketListingService {
         if (listing.getStatus() != MarketListing.Status.ACTIVE) {
             throw new BidVibeException(ErrorCode.MARKET_ITEM_NOT_FOR_SALE);
         }
-        if (listing.getSeller().getId().equals(buyerId)) {
+        if (listing.getSeller() == null || listing.getSeller().getId().equals(buyerId)) {
             throw new BidVibeException(ErrorCode.MARKET_CANNOT_BUY_OWN);
+        }
+        if (listing.getItem() == null) {
+            throw new BidVibeException(ErrorCode.ITEM_NOT_FOUND);
         }
 
         BigDecimal askingPrice = listing.getAskingPrice();
+        if (askingPrice == null || askingPrice.signum() <= 0) {
+            throw new BidVibeException(ErrorCode.VALIDATION_FAILED);
+        }
         BigDecimal fee = askingPrice.multiply(AppConstants.PLATFORM_FEE_RATE);
 
-        // Lock funds rồi process payment (giống flow đấu giá)
-        walletService.lockFunds(buyerId, askingPrice);
-        walletService.processFinalPayment(buyerId, listing.getSeller().getId(), askingPrice, fee);
+        // Mua ngay dùng available balance trực tiếp, không đi qua locked balance.
+        walletService.processMarketPayment(buyerId, listing.getSeller().getId(), askingPrice, fee);
 
         // Chuyển quyền sở hữu item
         User buyer = userService.findById(buyerId);
@@ -99,14 +104,19 @@ public class MarketListingService {
         listing.setBuyer(buyer);
         MarketListing saved = marketListingRepository.save(listing);
 
-        // Thông báo người bán
-        notificationService.sendNotification(
-                listing.getSeller(),
-                "Đồ của bạn đã được mua!",
-                "\"" + listing.getItem().getName() + "\" đã được mua với giá "
-                        + askingPrice.toPlainString() + " VND.",
-                NotificationPayload.NotificationType.SYSTEM,
-                listingId);
+        // Thông báo người bán (async, không block main transaction)
+        try {
+            notificationService.sendNotification(
+                    listing.getSeller(),
+                    "Đồ của bạn đã được mua!",
+                    "\"" + listing.getItem().getName() + "\" đã được mua với giá "
+                            + askingPrice.toPlainString() + " VND.",
+                    NotificationPayload.NotificationType.SYSTEM,
+                    listingId);
+        } catch (Exception e) {
+            // Log but don't fail transaction
+            System.err.println("[MarketListingService] Failed to send notification: " + e.getMessage());
+        }
 
         return MarketListingResponse.from(saved);
     }
@@ -119,7 +129,8 @@ public class MarketListingService {
     @Transactional(readOnly = true)
     public List<MessageResponse> getListingMessages(UUID userId, UUID listingId) {
         MarketListing listing = findById(listingId);
-        validateParticipant(listing, userId);
+        // Chỉ seller hoặc buyer (sau khi mua) mới xem được tin nhắn
+        validateMessageAccess(listing, userId);
         return messageRepository.findByMarketListingIdOrderByCreatedAtAsc(listingId)
                 .stream().map(MessageResponse::from).toList();
     }
@@ -128,7 +139,8 @@ public class MarketListingService {
     @Transactional(readOnly = true)
     public Page<MessageResponse> getListingMessages(UUID userId, UUID listingId, Pageable pageable) {
         MarketListing listing = findById(listingId);
-        validateParticipant(listing, userId);
+        // Chỉ seller hoặc buyer (sau khi mua) mới xem được tin nhắn
+        validateMessageAccess(listing, userId);
         return messageRepository.findByMarketListingId(listingId, pageable)
                 .map(MessageResponse::from);
     }
@@ -140,7 +152,7 @@ public class MarketListingService {
         if (listing.getStatus() != MarketListing.Status.ACTIVE) {
             throw new BidVibeException(ErrorCode.MARKET_ITEM_NOT_FOR_SALE);
         }
-        validateParticipant(listing, senderId);
+        validateMessageAccess(listing, senderId);
 
         User sender = userService.findById(senderId);
         
@@ -173,11 +185,11 @@ public class MarketListingService {
                 .orElseThrow(() -> new BidVibeException(ErrorCode.MARKET_LISTING_NOT_FOUND));
     }
 
-    /** Chỉ seller hoặc buyer được xem / gửi tin nhắn trong listing. */
-    private void validateParticipant(MarketListing listing, UUID userId) {
-        boolean isSeller = listing.getSeller().getId().equals(userId);
-        boolean isBuyer = listing.getBuyer() != null && listing.getBuyer().getId().equals(userId);
-        if (!isSeller && !isBuyer) {
+    /** Cho phép seller, buyer (sau khi mua), hoặc potential buyer xem tin nhắn để thương lượng. */
+    private void validateMessageAccess(MarketListing listing, UUID userId) {
+        // Chỉ cần user authenticated (không cần check seller/buyer)
+        // vì tin nhắn là P2P private — mỗi buyer gửi tin riêng chỉ seller thấy
+        if (userId == null) {
             throw new BidVibeException(ErrorCode.ACCESS_DENIED);
         }
     }

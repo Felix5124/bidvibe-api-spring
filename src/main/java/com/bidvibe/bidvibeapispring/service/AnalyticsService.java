@@ -99,7 +99,7 @@ public class AnalyticsService {
                 .getTotalElements();
 
         BigDecimal totalRevenue = transactionRepository
-                .findAllFiltered(Transaction.Type.FINAL_PAYMENT, Transaction.Status.COMPLETED,
+                .findAllFiltered(Transaction.Type.PLATFORM_FEE, Transaction.Status.COMPLETED,
                         org.springframework.data.domain.Pageable.unpaged())
                 .stream()
                 .map(Transaction::getAmount)
@@ -131,7 +131,7 @@ public class AnalyticsService {
     @Transactional(readOnly = true)
     public AdminRevenueResponse getAdminRevenue(LocalDate from, LocalDate to) {
         var allPayments = transactionRepository
-                .findAllFiltered(Transaction.Type.FINAL_PAYMENT, Transaction.Status.COMPLETED,
+                .findAllFiltered(Transaction.Type.PLATFORM_FEE, Transaction.Status.COMPLETED,
                         org.springframework.data.domain.Pageable.unpaged())
                 .getContent();
 

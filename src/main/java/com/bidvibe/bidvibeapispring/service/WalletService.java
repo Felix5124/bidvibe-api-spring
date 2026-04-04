@@ -148,6 +148,34 @@ public class WalletService {
         }
     }
 
+    /**
+     * Thanh toán mua ngay trên Chợ Đen.
+     * buyer.available -= finalAmount; seller.available += (finalAmount - fee)
+     * Đồng thời ghi nhận PLATFORM_FEE để thống kê doanh thu.
+     */
+    @Transactional
+    public void processMarketPayment(UUID buyerUserId, UUID sellerUserId, BigDecimal finalAmount, BigDecimal fee) {
+        try {
+            Wallet buyerWallet = findWalletByUserId(buyerUserId);
+            ensureSufficientBalance(buyerWallet, finalAmount);
+            buyerWallet.setBalanceAvailable(buyerWallet.getBalanceAvailable().subtract(finalAmount));
+            walletRepository.save(buyerWallet);
+            saveTransaction(buyerWallet, Transaction.Type.FINAL_PAYMENT, finalAmount, Transaction.Status.COMPLETED);
+
+            if (fee != null && fee.signum() > 0) {
+                saveTransaction(buyerWallet, Transaction.Type.PLATFORM_FEE, fee, Transaction.Status.COMPLETED);
+            }
+
+            BigDecimal sellerReceives = finalAmount.subtract(fee == null ? BigDecimal.ZERO : fee);
+            Wallet sellerWallet = findWalletByUserId(sellerUserId);
+            sellerWallet.setBalanceAvailable(sellerWallet.getBalanceAvailable().add(sellerReceives));
+            walletRepository.save(sellerWallet);
+            saveTransaction(sellerWallet, Transaction.Type.FINAL_PAYMENT, sellerReceives, Transaction.Status.COMPLETED);
+        } catch (ObjectOptimisticLockingFailureException e) {
+            throw new BidVibeException(ErrorCode.WALLET_OPTIMISTIC_LOCK, e);
+        }
+    }
+
     // ------------------------------------------------------------------
     // Admin – approve deposit/withdraw
     // ------------------------------------------------------------------

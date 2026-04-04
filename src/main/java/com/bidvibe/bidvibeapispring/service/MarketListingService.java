@@ -143,6 +143,12 @@ public class MarketListingService {
         validateParticipant(listing, senderId);
 
         User sender = userService.findById(senderId);
+        
+        // Check if user is muted
+        if (sender.isMuted()) {
+            throw new BidVibeException(ErrorCode.USER_MUTED);
+        }
+        
         // Người nhận là phía còn lại
         User receiver = listing.getSeller().getId().equals(senderId)
                 ? listing.getBuyer()    // seller nhắn — nhưng chưa có buyer, sẽ là null

@@ -45,13 +45,4 @@ public class WsEventPublisher {
     public void publishP2pMessage(UUID receiverId, ChatMessagePayload payload) {
         messaging.convertAndSendToUser(receiverId.toString(), "/queue/messages", payload);
     }
-
-    /**
-     * Gửi tín hiệu kick tới client để ngắt kết nối khỏi phòng đấu giá.
-     * Client lắng nghe /user/queue/kick và tự disconnect.
-     */
-    public void publishKick(UUID userId, UUID auctionId) {
-        messaging.convertAndSendToUser(userId.toString(), "/queue/kick",
-                java.util.Map.of("auctionId", auctionId.toString(), "event", "kick"));
-    }
 }

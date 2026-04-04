@@ -35,7 +35,6 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final RatingRepository ratingRepository;
-    private final WsEventPublisher wsEventPublisher;
     private final WalletRepository walletRepository;
 
     // ------------------------------------------------------------------
@@ -207,13 +206,5 @@ public class UserService {
         user.setBanned(false);
         user.setBannedAt(null);
         userRepository.save(user);
-    }
-
-    /**
-     * POST /api/admin/users/{id}/kick – ngắt kết nối WebSocket của user khỏi một phòng đấu giá.
-     * Gửi tín hiệu WS; client tự disconnect. User vẫn có thể reconnect.
-     */
-    public void kickUser(UUID userId, UUID auctionId) {
-        wsEventPublisher.publishKick(userId, auctionId);
     }
 }

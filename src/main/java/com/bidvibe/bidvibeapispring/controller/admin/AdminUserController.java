@@ -4,7 +4,6 @@ import com.bidvibe.bidvibeapispring.dto.common.ApiResponse;
 import com.bidvibe.bidvibeapispring.dto.common.PageResponse;
 import com.bidvibe.bidvibeapispring.dto.user.BanUserRequest;
 import com.bidvibe.bidvibeapispring.dto.user.ChangeRoleRequest;
-import com.bidvibe.bidvibeapispring.dto.user.KickUserRequest;
 import com.bidvibe.bidvibeapispring.dto.user.UserProfileResponse;
 import com.bidvibe.bidvibeapispring.entity.User;
 import com.bidvibe.bidvibeapispring.service.UserService;
@@ -88,15 +87,6 @@ public class AdminUserController {
     @PostMapping("/{id}/unban")
     public ResponseEntity<ApiResponse<Void>> unbanUser(@PathVariable UUID id) {
         userService.unbanUser(id);
-        return ResponseEntity.ok(ApiResponse.ok(null));
-    }
-
-    // POST /api/admin/users/{id}/kick
-    @PostMapping("/{id}/kick")
-    public ResponseEntity<ApiResponse<Void>> kickUser(
-            @PathVariable UUID id,
-            @Valid @RequestBody KickUserRequest req) {
-        userService.kickUser(id, req.getAuctionId());
         return ResponseEntity.ok(ApiResponse.ok(null));
     }
 }

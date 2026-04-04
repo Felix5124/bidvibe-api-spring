@@ -19,7 +19,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.UUID;
 
-import static com.bidvibe.bidvibeapispring.constant.ErrorCode.*;
+import static com.bidvibe.bidvibeapispring.constant.ErrorCode.AUCTION_NOT_FOUND;
+import static com.bidvibe.bidvibeapispring.constant.ErrorCode.USER_MUTED;
 
 /**
  * Xử lý nghiệp vụ Chat:
@@ -50,6 +51,12 @@ public class MessageService {
         }
 
         User sender = userService.findById(senderId);
+        
+        // Check if user is muted
+        if (sender.isMuted()) {
+            throw new BidVibeException(USER_MUTED);
+        }
+        
         User receiver = null;
         Auction auction = null;
 

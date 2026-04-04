@@ -28,6 +28,7 @@ public enum ErrorCode {
     USER_NOT_FOUND          (1001, HttpStatus.NOT_FOUND,     "Không tìm thấy người dùng."),
     USER_EMAIL_DUPLICATED   (1002, HttpStatus.CONFLICT,      "Email đã được đăng ký."),
     USER_BANNED             (1003, HttpStatus.FORBIDDEN,     "Tài khoản của bạn đã bị khóa vĩnh viễn."),
+    USER_MUTED              (1004, HttpStatus.FORBIDDEN,     "Bạn đã bị tắt tiếng và không thể gửi tin nhắn."),
 
     // -------------------------------------------------------------------------
     // WALLET

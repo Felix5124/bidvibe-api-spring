@@ -70,6 +70,15 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
             if (email != null && SecurityContextHolder.getContext().getAuthentication() == null) {
                 User user = userService.findOrCreate(sub, email, avatarUrl);
+                
+                // Check if user is banned
+                if (user.isBanned()) {
+                    response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                    response.setContentType("application/json");
+                    response.getWriter().write("{\"success\":false,\"errorCode\":1003,\"message\":\"Tài khoản của bạn đã bị khóa vĩnh viễn.\"}");
+                    return;
+                }
+                
                 String role = "ROLE_" + user.getRole().name();
 
                 UsernamePasswordAuthenticationToken authToken =

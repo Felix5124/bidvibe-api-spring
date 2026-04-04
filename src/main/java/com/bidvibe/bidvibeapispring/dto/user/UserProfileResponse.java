@@ -5,6 +5,7 @@ import java.time.Instant;
 import java.util.UUID;
 
 import com.bidvibe.bidvibeapispring.entity.User;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -30,6 +31,10 @@ public class UserProfileResponse {
     private BigDecimal reputationScore;
     private User.Role role;
     private Instant createdAt;
+    @JsonProperty("isBanned")
+    private boolean isBanned;
+    @JsonProperty("isMuted")
+    private boolean isMuted;
 
     // ------------------------------------------------------------------
     // Mapper helper
@@ -46,6 +51,8 @@ public class UserProfileResponse {
                 .reputationScore(user.getReputationScore())
                 .role(user.getRole())
                 .createdAt(user.getCreatedAt())
+                .isBanned(user.isBanned())
+                .isMuted(user.isMuted())
                 .build();
     }
 }

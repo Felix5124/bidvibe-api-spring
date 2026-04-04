@@ -259,48 +259,60 @@ public class BidService {
      * @param newPrice      giá vừa được đặt
      */
     private void runProxyEngine(Auction auction, UUID triggerUserId, BigDecimal newPrice) {
-        List<ProxyBid> activeProxies = proxyBidRepository
-                .findByAuctionIdAndIsActiveTrue(auction.getId());
+        BigDecimal step = auction.getStepPrice() != null ? auction.getStepPrice() : BigDecimal.ONE;
 
-        // Tìm proxy bid có maxAmount cao nhất (không phải người vừa bid)
-        activeProxies.stream()
-                .filter(p -> !p.getUser().getId().equals(triggerUserId))
-                .filter(p -> p.getMaxAmount().compareTo(newPrice) > 0)
-                .max(Comparator.comparing(ProxyBid::getMaxAmount))
-                .ifPresent(proxy -> {
-                    BigDecimal proxyAmount = newPrice.add(
-                            auction.getStepPrice() != null
-                                    ? auction.getStepPrice()
-                                    : BigDecimal.ONE);
+        while (true) {
+            List<ProxyBid> activeProxies = proxyBidRepository
+                    .findByAuctionIdAndIsActiveTrue(auction.getId());
+            if (activeProxies.isEmpty()) {
+                break;
+            }
 
-                    // Không vượt maxAmount của proxy
-                    if (proxyAmount.compareTo(proxy.getMaxAmount()) > 0) {
-                        proxyAmount = proxy.getMaxAmount();
-                    }
-                    if (proxyAmount.compareTo(newPrice) <= 0) return;
+            UUID currentWinnerId = auction.getWinner() != null ? auction.getWinner().getId() : null;
+            BigDecimal currentPrice = auction.getCurrentPrice() != null ? auction.getCurrentPrice() : auction.getStartPrice();
 
-                    // Unlock tiền người bid thủ công vừa rồi (bị proxy vượt ngay)
-                    walletService.unlockFunds(triggerUserId, newPrice);
-                    notifyOutbid(userService.findById(triggerUserId), auction);
+            ProxyBid nextProxy = activeProxies.stream()
+                    .filter(p -> currentWinnerId == null || !p.getUser().getId().equals(currentWinnerId))
+                    .filter(p -> p.getMaxAmount().compareTo(currentPrice) > 0)
+                    .max(Comparator.comparing(ProxyBid::getMaxAmount))
+                    .orElse(null);
 
-                    // Lock tiền proxy bidder
-                    walletService.lockFunds(proxy.getUser().getId(), proxyAmount);
+            if (nextProxy == null) {
+                break;
+            }
 
-                    saveBid(auction, proxy.getUser(), proxyAmount, true);
+            BigDecimal nextAmount = currentPrice.add(step);
+            if (nextAmount.compareTo(nextProxy.getMaxAmount()) > 0) {
+                nextAmount = nextProxy.getMaxAmount();
+            }
+            if (nextAmount.compareTo(currentPrice) <= 0) {
+                break;
+            }
 
-                    auction.setCurrentPrice(proxyAmount);
-                    auction.setWinner(proxy.getUser());
-                    auctionRepository.save(auction);
+            if (auction.getWinner() != null) {
+                walletService.unlockFunds(auction.getWinner().getId(), currentPrice);
+                notifyOutbid(auction.getWinner(), auction);
+            } else if (triggerUserId != null) {
+                walletService.unlockFunds(triggerUserId, currentPrice);
+                notifyOutbid(userService.findById(triggerUserId), auction);
+            }
 
-                    // Nếu đã dùng hết maxAmount → vô hiệu hóa proxy
-                    if (proxyAmount.compareTo(proxy.getMaxAmount()) == 0) {
-                        proxy.setActive(false);
-                        proxyBidRepository.save(proxy);
-                    }
+            walletService.lockFunds(nextProxy.getUser().getId(), nextAmount);
+            saveBid(auction, nextProxy.getUser(), nextAmount, true);
 
-                    auctionService.applyPopcornBidding(auction);
-                    auctionService.broadcastAuctionUpdate(auction);
-                });
+            auction.setCurrentPrice(nextAmount);
+            auction.setWinner(nextProxy.getUser());
+            auctionRepository.save(auction);
+
+            if (nextAmount.compareTo(nextProxy.getMaxAmount()) == 0) {
+                nextProxy.setActive(false);
+                proxyBidRepository.save(nextProxy);
+            }
+
+            auctionService.applyPopcornBidding(auction);
+        }
+
+        auctionService.broadcastAuctionUpdate(auction);
     }
 
     // ======================================================================

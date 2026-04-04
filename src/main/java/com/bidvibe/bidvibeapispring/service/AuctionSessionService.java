@@ -21,7 +21,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
-import java.util.Objects;
 import java.util.UUID;
 
 @Service
@@ -66,17 +65,29 @@ public class AuctionSessionService {
             throw new BidVibeException(ErrorCode.ITEM_ALREADY_IN_SESSION);
         }
 
-        Instant minAllowedEndTime = session.getStartTime()
-            .plusSeconds(AppConstants.MIN_AUCTION_DURATION_SECONDS);
-        Instant requestedEndTime = req.getEndTime() != null ? req.getEndTime() : minAllowedEndTime;
-        if (requestedEndTime.isBefore(minAllowedEndTime)) {
-            throw new BidVibeException(ErrorCode.AUCTION_END_TIME_TOO_EARLY);
+        Instant now = Instant.now();
+        Instant requestedEndTime;
+        long durationSeconds;
+        if (session.getType() == AuctionSession.Type.ENGLISH) {
+            // English trong session chạy tuần tự: luôn cố định 2 phút, không dùng endTime từ client.
+            durationSeconds = AppConstants.ENGLISH_AUCTION_DURATION_SECONDS;
+            requestedEndTime = now.plusSeconds(durationSeconds);
+        } else {
+            Instant minAllowedEndTime = now.plusSeconds(AppConstants.MIN_AUCTION_DURATION_SECONDS);
+            requestedEndTime = req.getEndTime() != null ? req.getEndTime() : minAllowedEndTime;
+            if (requestedEndTime.isBefore(minAllowedEndTime)) {
+                throw new BidVibeException(ErrorCode.AUCTION_END_TIME_TOO_EARLY);
+            }
+
+            durationSeconds = Math.max(
+                    AppConstants.MIN_AUCTION_DURATION_SECONDS,
+                    Duration.between(now, requestedEndTime).getSeconds()
+            );
         }
 
-        long durationSeconds = Math.max(
-                AppConstants.MIN_AUCTION_DURATION_SECONDS,
-            Duration.between(session.getStartTime(), requestedEndTime).getSeconds()
-        );
+        int orderIndex = req.getOrderIndex() != null
+                ? req.getOrderIndex()
+                : (int) auctionRepository.countBySessionId(sessionId);
 
         Item item = itemService.approveAndMoveToAuction(req.getItemId(), req.getRarity());
 
@@ -91,7 +102,7 @@ public class AuctionSessionService {
                 .intervalSeconds(AppConstants.DUTCH_PRICE_DECREASE_INTERVAL_SECONDS)
                 .durationSeconds((int) durationSeconds)
                 .endTime(requestedEndTime)
-                .orderIndex(Objects.requireNonNullElse(req.getOrderIndex(), 0))
+                .orderIndex(orderIndex)
                 .status(Auction.Status.WAITING)
                 .build());
 
@@ -154,7 +165,7 @@ public class AuctionSessionService {
                 ? session.getRemainingSeconds() 
             : AppConstants.MIN_AUCTION_DURATION_SECONDS;
         final int finalRemaining = remainingSeconds;
-        auctionRepository.findBySessionIdAndStatus(sessionId, Auction.Status.WAITING)
+        auctionRepository.findNextWaitingInSession(sessionId)
                 .ifPresent(a -> {
                     a.setEndTime(Instant.now().plusSeconds(finalRemaining));
                     a.setStatus(Auction.Status.ACTIVE);
@@ -164,11 +175,24 @@ public class AuctionSessionService {
         return AuctionSessionResponse.from(sessionRepository.save(session));
     }
 
-    /** Dừng phiên sớm – CANCELLED. */
+    /**
+     * Ngừng phiên theo thao tác admin.
+     * - ACTIVE  -> chuyển sang PAUSED để có thể tiếp tục lại.
+     * - PAUSED  -> giữ nguyên (idempotent).
+     * - SCHEDULED -> hủy phiên (CANCELLED).
+     */
     @Transactional
     public AuctionSessionResponse stopSession(UUID sessionId) {
         AuctionSession session = findById(sessionId);
-        session.setStatus(AuctionSession.Status.CANCELLED);
+        if (session.getStatus() == AuctionSession.Status.ACTIVE) {
+            return pauseSession(sessionId);
+        }
+        if (session.getStatus() == AuctionSession.Status.PAUSED) {
+            return AuctionSessionResponse.from(session);
+        }
+        if (session.getStatus() == AuctionSession.Status.SCHEDULED) {
+            session.setStatus(AuctionSession.Status.CANCELLED);
+        }
         return AuctionSessionResponse.from(sessionRepository.save(session));
     }
 

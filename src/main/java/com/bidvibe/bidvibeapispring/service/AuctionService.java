@@ -125,12 +125,7 @@ public class AuctionService {
 
         // English auction: endTime = now + 2 phút
         if (auction.getSession().getType() == AuctionSession.Type.ENGLISH) {
-            int durationSeconds = auction.getDurationSeconds() != null
-                ? auction.getDurationSeconds()
-                : AppConstants.MIN_AUCTION_DURATION_SECONDS;
-            durationSeconds = Math.max(durationSeconds, AppConstants.MIN_AUCTION_DURATION_SECONDS);
-            auction.setEndTime(
-                Instant.now().plusSeconds(durationSeconds));
+            auction.setEndTime(Instant.now().plusSeconds(AppConstants.ENGLISH_AUCTION_DURATION_SECONDS));
         }
         auctionRepository.save(auction);
 
@@ -269,10 +264,22 @@ public class AuctionService {
         }
 
         auctionRepository.findNextWaitingInSession(sessionId)
-                .ifPresentOrElse(
-                        this::startAuction,
-                        () -> sessionService.completeSession(sessionId)
-                );
+            .ifPresentOrElse(
+                nextWaiting -> {
+                    var latestEnded = auctionRepository.findTopBySessionIdAndStatusOrderByOrderIndexDesc(
+                        sessionId,
+                        Auction.Status.ENDED
+                    );
+                    if (latestEnded.isPresent() && latestEnded.get().getEndTime() != null) {
+                    long elapsed = Instant.now().getEpochSecond() - latestEnded.get().getEndTime().getEpochSecond();
+                    if (elapsed < AppConstants.BREAK_BETWEEN_ITEMS_SECONDS) {
+                        return;
+                    }
+                    }
+                    startAuction(nextWaiting);
+                },
+                () -> sessionService.completeSession(sessionId)
+            );
     }
 
     private void cancelAuction(Auction auction) {

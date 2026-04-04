@@ -59,6 +59,7 @@ public class WalletService {
                 .wallet(wallet)
                 .type(Transaction.Type.DEPOSIT)
                 .amount(req.getAmount())
+                .description(req.getNote())
                 .status(Transaction.Status.PENDING)
                 .build());
         return TransactionResponse.from(tx);

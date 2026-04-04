@@ -2,12 +2,10 @@ package com.bidvibe.bidvibeapispring.controller.admin;
 
 import com.bidvibe.bidvibeapispring.dto.common.ApiResponse;
 import com.bidvibe.bidvibeapispring.dto.common.PageResponse;
-import com.bidvibe.bidvibeapispring.dto.transaction.ApproveTransactionRequest;
 import com.bidvibe.bidvibeapispring.dto.transaction.TransactionResponse;
 import com.bidvibe.bidvibeapispring.entity.Transaction;
 import com.bidvibe.bidvibeapispring.service.TransactionService;
 import com.bidvibe.bidvibeapispring.service.WalletService;
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -19,7 +17,6 @@ import java.util.UUID;
 /**
  * GET  /api/admin/transactions          – tất cả giao dịch (phân trang, lọc type/status)
  * GET  /api/admin/transactions/pending  – giao dịch đang pending (Deposit + Withdraw)
- * POST /api/admin/transactions/approve  – duyệt / từ chối giao dịch
  * POST /api/admin/transactions/{id}/approve-deposit   – duyệt nạp tiền
  * POST /api/admin/transactions/{id}/reject-deposit    – từ chối nạp tiền
  * POST /api/admin/transactions/{id}/approve-withdraw  – duyệt rút tiền
@@ -51,13 +48,6 @@ public class AdminTransactionController {
         return ResponseEntity.ok(ApiResponse.ok(transactionService.listPending()));
     }
 
-    // POST /api/admin/transactions/approve  (legacy bulk endpoint)
-    @PostMapping("/approve")
-    public ResponseEntity<ApiResponse<TransactionResponse>> processTransaction(
-            @Valid @RequestBody ApproveTransactionRequest req) {
-        return ResponseEntity.ok(ApiResponse.ok(transactionService.processTransaction(req)));
-    }
-
     // POST /api/admin/transactions/{id}/approve-deposit
     @PostMapping("/{id}/approve-deposit")
     public ResponseEntity<ApiResponse<TransactionResponse>> approveDeposit(@PathVariable UUID id) {
@@ -82,15 +72,4 @@ public class AdminTransactionController {
         return ResponseEntity.ok(ApiResponse.ok(walletService.rejectWithdraw(id)));
     }
 
-    // POST /api/admin/transactions/{id}/approve
-    @PostMapping("/{id}/approve")
-    public ResponseEntity<ApiResponse<TransactionResponse>> approve(@PathVariable UUID id) {
-        return ResponseEntity.ok(ApiResponse.ok(transactionService.approve(id)));
-    }
-
-    // POST /api/admin/transactions/{id}/reject
-    @PostMapping("/{id}/reject")
-    public ResponseEntity<ApiResponse<TransactionResponse>> reject(@PathVariable UUID id) {
-        return ResponseEntity.ok(ApiResponse.ok(transactionService.reject(id)));
-    }
 }

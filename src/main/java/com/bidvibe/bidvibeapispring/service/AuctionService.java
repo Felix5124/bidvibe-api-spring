@@ -205,10 +205,10 @@ public class AuctionService {
                 log.error("[endAuction] Lỗi xử lý thanh toán cho auction {}: {}", a.getId(), e.getMessage(), e);
             }
         }, () -> {
-            // Không có ai đấu giá - trả item về kho người bán
-            log.info("[endAuction] Auction {} kết thúc không có người đấu giá. Trả item về kho người bán.", a.getId());
+            // Không có ai đấu giá - trả item về trạng thái APPROVED để Admin xếp lại phiên khác
+            log.info("[endAuction] Auction {} kết thúc không có người đấu giá. Trả item về trạng thái APPROVED.", a.getId());
             Item item = a.getItem();
-            item.setStatus(Item.Status.IN_INVENTORY);
+            item.setStatus(Item.Status.APPROVED);
             item.setCurrentOwner(item.getSeller());
             itemRepository.save(item);
 
@@ -217,7 +217,7 @@ public class AuctionService {
                     item.getSeller(),
                     "Phiên đấu giá kết thúc không có người mua",
                     "Vật phẩm \"" + item.getName() + "\" đã kết thúc phiên đấu giá mà không có ai đặt giá. " +
-                            "Vật phẩm đã được trả về kho của bạn.",
+                            "Hệ thống đã chuyển vật phẩm về trạng thái Đã duyệt để quản trị viên xếp vào phiên đấu giá tiếp theo.",
                     com.bidvibe.bidvibeapispring.dto.ws.NotificationPayload.NotificationType.SYSTEM,
                     a.getId());
         });

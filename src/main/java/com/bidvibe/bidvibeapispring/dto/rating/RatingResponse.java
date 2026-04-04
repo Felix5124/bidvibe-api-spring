@@ -26,6 +26,10 @@ public class RatingResponse {
     private UUID auctionId;
     /** Null nếu đánh giá cho Auction. */
     private UUID marketListingId;
+    /** Thông tin sản phẩm được đánh giá. */
+    private UUID itemId;
+    private String itemName;
+    private String itemImageUrl;
     private Integer stars;
     private String comment;
     private Instant createdAt;
@@ -35,6 +39,25 @@ public class RatingResponse {
     // ------------------------------------------------------------------
 
     public static RatingResponse from(Rating rating) {
+        // Lấy thông tin item từ auction hoặc marketListing
+        UUID itemId = null;
+        String itemName = null;
+        String itemImageUrl = null;
+        
+        if (rating.getAuction() != null && rating.getAuction().getItem() != null) {
+            var item = rating.getAuction().getItem();
+            itemId = item.getId();
+            itemName = item.getName();
+            itemImageUrl = item.getImageUrls() != null && !item.getImageUrls().isEmpty() 
+                    ? item.getImageUrls().get(0) : null;
+        } else if (rating.getMarketListing() != null && rating.getMarketListing().getItem() != null) {
+            var item = rating.getMarketListing().getItem();
+            itemId = item.getId();
+            itemName = item.getName();
+            itemImageUrl = item.getImageUrls() != null && !item.getImageUrls().isEmpty() 
+                    ? item.getImageUrls().get(0) : null;
+        }
+        
         return RatingResponse.builder()
                 .id(rating.getId())
                 .fromUser(UserSummary.builder()
@@ -51,6 +74,9 @@ public class RatingResponse {
                         .build())
                 .auctionId(rating.getAuction() != null ? rating.getAuction().getId() : null)
                 .marketListingId(rating.getMarketListing() != null ? rating.getMarketListing().getId() : null)
+                .itemId(itemId)
+                .itemName(itemName)
+                .itemImageUrl(itemImageUrl)
                 .stars(rating.getStars())
                 .comment(rating.getComment())
                 .createdAt(rating.getCreatedAt())

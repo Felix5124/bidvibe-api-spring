@@ -34,5 +34,23 @@ public interface AuctionSessionRepository extends JpaRepository<AuctionSession, 
             @org.springframework.data.repository.query.Param("status") AuctionSession.Status status,
             @org.springframework.data.repository.query.Param("type")   AuctionSession.Type type,
             org.springframework.data.domain.Pageable pageable);
+
+    /**
+     * Public lobby sessions:
+     * - Chỉ phiên ENGLISH
+     * - Chỉ ACTIVE hoặc SCHEDULED
+     * - ACTIVE đứng trước, sau đó đến SCHEDULED gần nhất.
+     */
+    @org.springframework.data.jpa.repository.Query("""
+            SELECT s FROM AuctionSession s
+            WHERE s.type = 'ENGLISH'
+              AND s.status IN ('ACTIVE', 'SCHEDULED')
+            ORDER BY
+              CASE WHEN s.status = 'ACTIVE' THEN 0 ELSE 1 END,
+              s.startTime ASC,
+              s.createdAt DESC
+            """)
+    org.springframework.data.domain.Page<AuctionSession> findPublicLobbySessions(
+            org.springframework.data.domain.Pageable pageable);
 }
 

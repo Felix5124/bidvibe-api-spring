@@ -33,8 +33,13 @@ public class AuctionSessionController {
             @RequestParam(required = false) AuctionSession.Type type,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
-        var result = auctionSessionService.listSessions(status, type,
-                PageRequest.of(page, size, Sort.by("createdAt").descending()));
+        Page<AuctionSessionResponse> result;
+        if (status == null && type == null) {
+            result = auctionSessionService.listPublicLobbySessions(PageRequest.of(page, size));
+        } else {
+            result = auctionSessionService.listSessions(status, type,
+                    PageRequest.of(page, size, Sort.by("createdAt").descending()));
+        }
         return ResponseEntity.ok(ApiResponse.ok(PageResponse.of(result)));
     }
 

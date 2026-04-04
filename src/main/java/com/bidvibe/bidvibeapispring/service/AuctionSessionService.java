@@ -217,6 +217,18 @@ public class AuctionSessionService {
                 .map(AuctionSessionResponse::from);
     }
 
+    /**
+     * Public lobby:
+     * - Chỉ ENGLISH
+     * - Chỉ ACTIVE + SCHEDULED
+     * - ACTIVE hiển thị trước.
+     */
+    @Transactional(readOnly = true)
+    public Page<AuctionSessionResponse> listPublicLobbySessions(Pageable pageable) {
+        return sessionRepository.findPublicLobbySessions(pageable)
+                .map(AuctionSessionResponse::from);
+    }
+
     /** GET /api/sessions/{id} */
     @Transactional(readOnly = true)
     public AuctionSessionResponse getSession(UUID sessionId) {

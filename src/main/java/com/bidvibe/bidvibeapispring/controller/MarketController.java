@@ -4,6 +4,7 @@ import com.bidvibe.bidvibeapispring.dto.common.ApiResponse;
 import com.bidvibe.bidvibeapispring.dto.common.PageResponse;
 import com.bidvibe.bidvibeapispring.dto.market.CreateListingRequest;
 import com.bidvibe.bidvibeapispring.dto.market.MarketListingResponse;
+import com.bidvibe.bidvibeapispring.dto.market.UpdateListingPriceRequest;
 import com.bidvibe.bidvibeapispring.dto.message.MessageResponse;
 import com.bidvibe.bidvibeapispring.entity.Item;
 import com.bidvibe.bidvibeapispring.entity.User;
@@ -20,15 +21,16 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.UUID;
 
 /**
- * GET    /api/market                      – tìm kiếm listing (phân trang)
- * GET    /api/market/{id}                 – chi tiết listing
- * DELETE /api/market/{id}                 – chủ listing huỷ niêm yết
- * POST   /api/market/{id}/buy             – mua ngay
- * GET    /api/market/{id}/messages        – lịch sử tin nhắn thương lượng
- * POST   /api/market/{id}/messages        – gửi tin nhắn thương lượng
+ * GET /api/market – tìm kiếm listing (phân trang)
+ * GET /api/market/{id} – chi tiết listing
+ * DELETE /api/market/{id} – chủ listing huỷ niêm yết
+ * POST /api/market/{id}/buy – mua ngay
+ * GET /api/market/{id}/messages – lịch sử tin nhắn thương lượng
+ * POST /api/market/{id}/messages – gửi tin nhắn thương lượng
  */
 @RestController
 @RequestMapping("/api/market/listings")
@@ -60,6 +62,14 @@ public class MarketController {
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.created(result));
     }
 
+    // GET /api/market/listings/me/active
+    @GetMapping("/me/active")
+    public ResponseEntity<ApiResponse<List<MarketListingResponse>>> getMyActiveListings(
+            @AuthenticationPrincipal User currentUser) {
+        var result = marketListingService.getMyActiveListings(currentUser.getId());
+        return ResponseEntity.ok(ApiResponse.ok(result));
+    }
+
     // GET /api/market/listings/{id}
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<MarketListingResponse>> getListingDetail(@PathVariable UUID id) {
@@ -81,6 +91,16 @@ public class MarketController {
             @AuthenticationPrincipal User currentUser,
             @PathVariable UUID id) {
         var result = marketListingService.buyListing(currentUser.getId(), id);
+        return ResponseEntity.ok(ApiResponse.ok(result));
+    }
+
+    // PATCH /api/market/listings/{id}/price
+    @PatchMapping("/{id}/price")
+    public ResponseEntity<ApiResponse<MarketListingResponse>> updateListingPrice(
+            @AuthenticationPrincipal User currentUser,
+            @PathVariable UUID id,
+            @Valid @RequestBody UpdateListingPriceRequest req) {
+        var result = marketListingService.updateListingPrice(currentUser.getId(), id, req.getAskingPrice());
         return ResponseEntity.ok(ApiResponse.ok(result));
     }
 
@@ -106,5 +126,6 @@ public class MarketController {
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.created(result));
     }
 
-    record MessageBody(@NotBlank @Size(max = 1000) String content) {}
+    record MessageBody(@NotBlank @Size(max = 1000) String content) {
+    }
 }

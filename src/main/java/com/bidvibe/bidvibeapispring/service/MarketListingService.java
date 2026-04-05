@@ -19,6 +19,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.UUID;
 
@@ -50,6 +52,19 @@ public class MarketListingService {
         return MarketListingResponse.from(findById(listingId));
     }
 
+    /**
+     * GET /api/market/listings/me/active – danh sách listing ACTIVE của user hiện
+     * tại
+     */
+    @Transactional(readOnly = true)
+    public List<MarketListingResponse> getMyActiveListings(UUID userId) {
+        return marketListingRepository
+                .findBySellerIdAndStatusOrderByCreatedAtDesc(userId, MarketListing.Status.ACTIVE)
+                .stream()
+                .map(MarketListingResponse::from)
+                .toList();
+    }
+
     // ------------------------------------------------------------------
     // User actions
     // ------------------------------------------------------------------
@@ -69,8 +84,36 @@ public class MarketListingService {
     }
 
     /**
+     * PATCH /api/market/listings/{id}/price – seller cập nhật giá sau khi hết khóa
+     * 12h.
+     */
+    @Transactional
+    public MarketListingResponse updateListingPrice(UUID userId, UUID listingId, BigDecimal askingPrice) {
+        MarketListing listing = findById(listingId);
+
+        if (!listing.getSeller().getId().equals(userId)) {
+            throw new BidVibeException(ErrorCode.ACCESS_DENIED);
+        }
+        if (listing.getStatus() != MarketListing.Status.ACTIVE) {
+            throw new BidVibeException(ErrorCode.MARKET_ITEM_NOT_FOR_SALE);
+        }
+        if (askingPrice == null || askingPrice.signum() <= 0) {
+            throw new BidVibeException(ErrorCode.VALIDATION_FAILED);
+        }
+
+        Instant unlockAt = listing.getCreatedAt().plus(12, ChronoUnit.HOURS);
+        if (Instant.now().isBefore(unlockAt)) {
+            throw new BidVibeException(ErrorCode.MARKET_PRICE_UPDATE_LOCKED);
+        }
+
+        listing.setAskingPrice(askingPrice);
+        return MarketListingResponse.from(marketListingRepository.save(listing));
+    }
+
+    /**
      * POST /api/market/{id}/buy – mua ngay với giá niêm yết.
-     * Trình tự: lock tiền → thanh toán → chuyển quyền sở hữu item → cập nhật listing.
+     * Trình tự: lock tiền → thanh toán → chuyển quyền sở hữu item → cập nhật
+     * listing.
      */
     @Transactional
     public MarketListingResponse buyListing(UUID buyerId, UUID listingId) {
@@ -155,15 +198,15 @@ public class MarketListingService {
         validateMessageAccess(listing, senderId);
 
         User sender = userService.findById(senderId);
-        
+
         // Check if user is muted
         if (sender.isMuted()) {
             throw new BidVibeException(ErrorCode.USER_MUTED);
         }
-        
+
         // Người nhận là phía còn lại
         User receiver = listing.getSeller().getId().equals(senderId)
-                ? listing.getBuyer()    // seller nhắn — nhưng chưa có buyer, sẽ là null
+                ? listing.getBuyer() // seller nhắn — nhưng chưa có buyer, sẽ là null
                 : listing.getSeller();
 
         Message message = messageRepository.save(Message.builder()
@@ -185,7 +228,10 @@ public class MarketListingService {
                 .orElseThrow(() -> new BidVibeException(ErrorCode.MARKET_LISTING_NOT_FOUND));
     }
 
-    /** Cho phép seller, buyer (sau khi mua), hoặc potential buyer xem tin nhắn để thương lượng. */
+    /**
+     * Cho phép seller, buyer (sau khi mua), hoặc potential buyer xem tin nhắn để
+     * thương lượng.
+     */
     private void validateMessageAccess(MarketListing listing, UUID userId) {
         // Chỉ cần user authenticated (không cần check seller/buyer)
         // vì tin nhắn là P2P private — mỗi buyer gửi tin riêng chỉ seller thấy
@@ -225,7 +271,8 @@ public class MarketListingService {
     }
 
     /**
-     * GET /api/admin/market/listings/{id}/messages – Admin xem toàn bộ chat P2P để giải quyết tranh chấp.
+     * GET /api/admin/market/listings/{id}/messages – Admin xem toàn bộ chat P2P để
+     * giải quyết tranh chấp.
      */
     @Transactional(readOnly = true)
     public List<MessageResponse> adminGetListingMessages(UUID listingId) {

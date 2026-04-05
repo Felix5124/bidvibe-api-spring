@@ -16,97 +16,104 @@ public enum ErrorCode {
     // -------------------------------------------------------------------------
     // COMMON
     // -------------------------------------------------------------------------
-    VALIDATION_FAILED       (400, HttpStatus.BAD_REQUEST,           "Dữ liệu đầu vào không hợp lệ."),
-    RESOURCE_NOT_FOUND      (404, HttpStatus.NOT_FOUND,             "Không tìm thấy tài nguyên yêu cầu."),
-    ACCESS_DENIED           (403, HttpStatus.FORBIDDEN,             "Bạn không có quyền thực hiện hành động này."),
-    UNAUTHORIZED            (401, HttpStatus.UNAUTHORIZED,          "Xác thực thất bại. Vui lòng đăng nhập lại."),
-    INTERNAL_SERVER_ERROR   (500, HttpStatus.INTERNAL_SERVER_ERROR, "Lỗi hệ thống. Vui lòng thử lại sau."),
+    VALIDATION_FAILED(400, HttpStatus.BAD_REQUEST, "Dữ liệu đầu vào không hợp lệ."),
+    RESOURCE_NOT_FOUND(404, HttpStatus.NOT_FOUND, "Không tìm thấy tài nguyên yêu cầu."),
+    ACCESS_DENIED(403, HttpStatus.FORBIDDEN, "Bạn không có quyền thực hiện hành động này."),
+    UNAUTHORIZED(401, HttpStatus.UNAUTHORIZED, "Xác thực thất bại. Vui lòng đăng nhập lại."),
+    INTERNAL_SERVER_ERROR(500, HttpStatus.INTERNAL_SERVER_ERROR, "Lỗi hệ thống. Vui lòng thử lại sau."),
 
     // -------------------------------------------------------------------------
     // USER
     // -------------------------------------------------------------------------
-    USER_NOT_FOUND          (1001, HttpStatus.NOT_FOUND,     "Không tìm thấy người dùng."),
-    USER_EMAIL_DUPLICATED   (1002, HttpStatus.CONFLICT,      "Email đã được đăng ký."),
-    USER_BANNED             (1003, HttpStatus.FORBIDDEN,     "Tài khoản của bạn đã bị khóa vĩnh viễn."),
-    USER_MUTED              (1004, HttpStatus.FORBIDDEN,     "Bạn đã bị tắt tiếng và không thể gửi tin nhắn."),
+    USER_NOT_FOUND(1001, HttpStatus.NOT_FOUND, "Không tìm thấy người dùng."),
+    USER_EMAIL_DUPLICATED(1002, HttpStatus.CONFLICT, "Email đã được đăng ký."),
+    USER_BANNED(1003, HttpStatus.FORBIDDEN, "Tài khoản của bạn đã bị khóa vĩnh viễn."),
+    USER_MUTED(1004, HttpStatus.FORBIDDEN, "Bạn đã bị tắt tiếng và không thể gửi tin nhắn."),
 
     // -------------------------------------------------------------------------
     // WALLET
     // -------------------------------------------------------------------------
-    WALLET_NOT_FOUND        (2001, HttpStatus.NOT_FOUND,     "Không tìm thấy ví tiền."),
-    WALLET_INSUFFICIENT     (2002, HttpStatus.BAD_REQUEST,   "Số dư khả dụng không đủ để thực hiện giao dịch."),
-    WALLET_OPTIMISTIC_LOCK  (2003, HttpStatus.CONFLICT,      "Giao dịch bị xung đột. Vui lòng thử lại."),
+    WALLET_NOT_FOUND(2001, HttpStatus.NOT_FOUND, "Không tìm thấy ví tiền."),
+    WALLET_INSUFFICIENT(2002, HttpStatus.BAD_REQUEST, "Số dư khả dụng không đủ để thực hiện giao dịch."),
+    WALLET_OPTIMISTIC_LOCK(2003, HttpStatus.CONFLICT, "Giao dịch bị xung đột. Vui lòng thử lại."),
 
     // -------------------------------------------------------------------------
     // ITEM
     // -------------------------------------------------------------------------
-    ITEM_NOT_FOUND          (3001, HttpStatus.NOT_FOUND,     "Không tìm thấy vật phẩm."),
-    ITEM_NOT_OWNED          (3002, HttpStatus.FORBIDDEN,     "Bạn không sở hữu vật phẩm này."),
-    ITEM_IN_COOLDOWN        (3003, HttpStatus.BAD_REQUEST,   "Vật phẩm đang trong thời gian khóa chuyển nhượng (12h)."),
-    ITEM_NOT_AVAILABLE      (3004, HttpStatus.BAD_REQUEST,   "Vật phẩm không ở trạng thái phù hợp để thực hiện hành động này."),
-    ITEM_NOT_IN_INVENTORY   (3005, HttpStatus.BAD_REQUEST,   "Vật phẩm không có trong kho của bạn."),
-    ITEM_DELETE_NOT_ALLOWED (3006, HttpStatus.BAD_REQUEST,   "Chỉ có thể xóa vật phẩm đã bị từ chối."),
+    ITEM_NOT_FOUND(3001, HttpStatus.NOT_FOUND, "Không tìm thấy vật phẩm."),
+    ITEM_NOT_OWNED(3002, HttpStatus.FORBIDDEN, "Bạn không sở hữu vật phẩm này."),
+    ITEM_IN_COOLDOWN(3003, HttpStatus.BAD_REQUEST, "Vật phẩm đang trong thời gian khóa chuyển nhượng (12h)."),
+    ITEM_NOT_AVAILABLE(3004, HttpStatus.BAD_REQUEST, "Vật phẩm không ở trạng thái phù hợp để thực hiện hành động này."),
+    ITEM_NOT_IN_INVENTORY(3005, HttpStatus.BAD_REQUEST, "Vật phẩm không có trong kho của bạn."),
+    ITEM_DELETE_NOT_ALLOWED(3006, HttpStatus.BAD_REQUEST, "Chỉ có thể xóa vật phẩm đã bị từ chối."),
 
     // -------------------------------------------------------------------------
     // AUCTION SESSION
     // -------------------------------------------------------------------------
-    SESSION_NOT_FOUND       (4001, HttpStatus.NOT_FOUND,     "Không tìm thấy phiên đấu giá."),
-    SESSION_NOT_ACTIVE      (4002, HttpStatus.BAD_REQUEST,   "Phiên đấu giá không đang hoạt động."),
-    SESSION_ALREADY_STARTED (4003, HttpStatus.CONFLICT,      "Phiên đấu giá đã được bắt đầu."),
-    SESSION_NOT_PAUSED      (4004, HttpStatus.BAD_REQUEST,   "Phiên đấu giá không đang tạm dừng."),
-    ITEM_ALREADY_IN_SESSION (4005, HttpStatus.CONFLICT,      "Vật phẩm đã có trong một phiên đấu giá khác đang chờ hoặc đang diễn ra."),
-    DUTCH_AUCTION_REQUIRES_MIN_PRICE (4006, HttpStatus.BAD_REQUEST, "Đấu giá giảm dần (Dutch) yêu cầu giá sàn (minPrice) phải lớn hơn 0."),
-    AUCTION_END_TIME_TOO_EARLY (4007, HttpStatus.BAD_REQUEST, "Thời gian kết thúc vật phẩm không đủ tối thiểu 10 phút/món trong phiên."),
+    SESSION_NOT_FOUND(4001, HttpStatus.NOT_FOUND, "Không tìm thấy phiên đấu giá."),
+    SESSION_NOT_ACTIVE(4002, HttpStatus.BAD_REQUEST, "Phiên đấu giá không đang hoạt động."),
+    SESSION_ALREADY_STARTED(4003, HttpStatus.CONFLICT, "Phiên đấu giá đã được bắt đầu."),
+    SESSION_NOT_PAUSED(4004, HttpStatus.BAD_REQUEST, "Phiên đấu giá không đang tạm dừng."),
+    ITEM_ALREADY_IN_SESSION(4005, HttpStatus.CONFLICT,
+            "Vật phẩm đã có trong một phiên đấu giá khác đang chờ hoặc đang diễn ra."),
+    DUTCH_AUCTION_REQUIRES_MIN_PRICE(4006, HttpStatus.BAD_REQUEST,
+            "Đấu giá giảm dần (Dutch) yêu cầu giá sàn (minPrice) phải lớn hơn 0."),
+    AUCTION_END_TIME_TOO_EARLY(4007, HttpStatus.BAD_REQUEST,
+            "Thời gian kết thúc vật phẩm không đủ tối thiểu 10 phút/món trong phiên."),
 
     // -------------------------------------------------------------------------
     // AUCTION
     // -------------------------------------------------------------------------
-    AUCTION_NOT_FOUND       (5001, HttpStatus.NOT_FOUND,     "Không tìm thấy phiên đấu giá chi tiết."),
-    AUCTION_NOT_ACTIVE      (5002, HttpStatus.BAD_REQUEST,   "Lượt đấu giá này không đang diễn ra."),
-    AUCTION_ALREADY_ENDED   (5003, HttpStatus.BAD_REQUEST,   "Lượt đấu giá đã kết thúc."),
-    AUCTION_BID_TOO_LOW     (5004, HttpStatus.BAD_REQUEST,   "Giá đặt phải cao hơn giá hiện tại và bước giá tối thiểu."),
-    AUCTION_BID_ON_OWN_ITEM (5005, HttpStatus.BAD_REQUEST,   "Bạn không thể đấu giá trên vật phẩm của chính mình."),
-    AUCTION_SEALED_DUPLICATE(5006, HttpStatus.CONFLICT,      "Bạn đã đặt giá kín cho lượt đấu giá này rồi."),
-    BID_NOT_FOUND           (5007, HttpStatus.NOT_FOUND,     "Không tìm thấy lượt đặt giá."),
-    AUCTION_TIMER_DECREASE_NOT_ALLOWED (5008, HttpStatus.BAD_REQUEST, "Chỉ được tăng thời gian đấu giá, không được giảm."),
+    AUCTION_NOT_FOUND(5001, HttpStatus.NOT_FOUND, "Không tìm thấy phiên đấu giá chi tiết."),
+    AUCTION_NOT_ACTIVE(5002, HttpStatus.BAD_REQUEST, "Lượt đấu giá này không đang diễn ra."),
+    AUCTION_ALREADY_ENDED(5003, HttpStatus.BAD_REQUEST, "Lượt đấu giá đã kết thúc."),
+    AUCTION_BID_TOO_LOW(5004, HttpStatus.BAD_REQUEST, "Giá đặt phải cao hơn giá hiện tại và bước giá tối thiểu."),
+    AUCTION_BID_ON_OWN_ITEM(5005, HttpStatus.BAD_REQUEST, "Bạn không thể đấu giá trên vật phẩm của chính mình."),
+    AUCTION_SEALED_DUPLICATE(5006, HttpStatus.CONFLICT, "Bạn đã đặt giá kín cho lượt đấu giá này rồi."),
+    BID_NOT_FOUND(5007, HttpStatus.NOT_FOUND, "Không tìm thấy lượt đặt giá."),
+    AUCTION_TIMER_DECREASE_NOT_ALLOWED(5008, HttpStatus.BAD_REQUEST,
+            "Chỉ được tăng thời gian đấu giá, không được giảm."),
 
     // -------------------------------------------------------------------------
     // PROXY BID
     // -------------------------------------------------------------------------
-    PROXY_BID_NOT_FOUND     (6001, HttpStatus.NOT_FOUND,     "Không tìm thấy cấu hình đấu giá tự động."),
-    PROXY_BID_ALREADY_SET   (6002, HttpStatus.CONFLICT,      "Bạn đã cài đặt đấu giá tự động cho lượt này. Hãy cập nhật thay vì tạo mới."),
+    PROXY_BID_NOT_FOUND(6001, HttpStatus.NOT_FOUND, "Không tìm thấy cấu hình đấu giá tự động."),
+    PROXY_BID_ALREADY_SET(6002, HttpStatus.CONFLICT,
+            "Bạn đã cài đặt đấu giá tự động cho lượt này. Hãy cập nhật thay vì tạo mới."),
 
     // -------------------------------------------------------------------------
     // WATCHLIST
     // -------------------------------------------------------------------------
-    WATCHLIST_ALREADY_EXISTS(7001, HttpStatus.CONFLICT,      "Bạn đã theo dõi vật phẩm này rồi."),
-    WATCHLIST_NOT_FOUND     (7002, HttpStatus.NOT_FOUND,     "Không tìm thấy mục theo dõi."),
+    WATCHLIST_ALREADY_EXISTS(7001, HttpStatus.CONFLICT, "Bạn đã theo dõi vật phẩm này rồi."),
+    WATCHLIST_NOT_FOUND(7002, HttpStatus.NOT_FOUND, "Không tìm thấy mục theo dõi."),
 
     // -------------------------------------------------------------------------
     // RATING
     // -------------------------------------------------------------------------
-    RATING_ALREADY_SUBMITTED(8001, HttpStatus.CONFLICT,      "Bạn đã đánh giá giao dịch này rồi."),
-    RATING_NOT_ELIGIBLE     (8002, HttpStatus.FORBIDDEN,     "Bạn không đủ điều kiện để đánh giá giao dịch này."),
-    RATING_INVALID_STARS    (8003, HttpStatus.BAD_REQUEST,   "Số sao đánh giá phải từ 1 đến 5."),
+    RATING_ALREADY_SUBMITTED(8001, HttpStatus.CONFLICT, "Bạn đã đánh giá giao dịch này rồi."),
+    RATING_NOT_ELIGIBLE(8002, HttpStatus.FORBIDDEN, "Bạn không đủ điều kiện để đánh giá giao dịch này."),
+    RATING_INVALID_STARS(8003, HttpStatus.BAD_REQUEST, "Số sao đánh giá phải từ 1 đến 5."),
 
     // -------------------------------------------------------------------------
     // TRANSACTION
     // -------------------------------------------------------------------------
-    TRANSACTION_NOT_FOUND   (9001, HttpStatus.NOT_FOUND,     "Không tìm thấy giao dịch."),
+    TRANSACTION_NOT_FOUND(9001, HttpStatus.NOT_FOUND, "Không tìm thấy giao dịch."),
     TRANSACTION_ALREADY_PROCESSED(9002, HttpStatus.CONFLICT, "Giao dịch này đã được xử lý trước đó."),
 
     // -------------------------------------------------------------------------
     // MARKET (Black Market)
     // -------------------------------------------------------------------------
-    MARKET_ITEM_NOT_FOR_SALE(10001, HttpStatus.BAD_REQUEST,  "Vật phẩm này chưa được niêm yết trên Chợ Đen."),
-    MARKET_CANNOT_BUY_OWN   (10002, HttpStatus.BAD_REQUEST,  "Bạn không thể mua vật phẩm của chính mình."),
-    MARKET_LISTING_NOT_FOUND(10003, HttpStatus.NOT_FOUND,     "Không tìm thấy listing trên Chợ Đen."),
+    MARKET_ITEM_NOT_FOR_SALE(10001, HttpStatus.BAD_REQUEST, "Vật phẩm này chưa được niêm yết trên Chợ Đen."),
+    MARKET_CANNOT_BUY_OWN(10002, HttpStatus.BAD_REQUEST, "Bạn không thể mua vật phẩm của chính mình."),
+    MARKET_LISTING_NOT_FOUND(10003, HttpStatus.NOT_FOUND, "Không tìm thấy listing trên Chợ Đen."),
     MARKET_LISTING_ALREADY_ACTIVE(10004, HttpStatus.CONFLICT, "Vật phẩm này đã có một listing đang hoạt động."),
+    MARKET_PRICE_UPDATE_LOCKED(10005, HttpStatus.BAD_REQUEST,
+            "Giá niêm yết đang bị khóa. Bạn chỉ có thể sửa giá sau 12 giờ kể từ lúc đăng bán."),
 
     // -------------------------------------------------------------------------
     // NOTIFICATION
     // -------------------------------------------------------------------------
-    NOTIFICATION_NOT_FOUND  (11001, HttpStatus.NOT_FOUND,    "Không tìm thấy thông báo.");
+    NOTIFICATION_NOT_FOUND(11001, HttpStatus.NOT_FOUND, "Không tìm thấy thông báo.");
 
     // -------------------------------------------------------------------------
 
@@ -120,4 +127,3 @@ public enum ErrorCode {
         this.message = message;
     }
 }
-

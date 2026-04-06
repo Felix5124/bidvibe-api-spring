@@ -108,6 +108,30 @@ public class ItemService {
         return ItemResponse.from(item);
     }
 
+    @Transactional
+    public ItemResponse requestShipping(UUID userId, UUID itemId) {
+        Item item = findById(itemId);
+        validateOwner(item, userId);
+
+        if (item.getStatus() != Item.Status.IN_INVENTORY) {
+            throw new BidVibeException(ErrorCode.ITEM_NOT_AVAILABLE);
+        }
+
+        item.setStatus(Item.Status.SHIPPING_REQUESTED);
+        return ItemResponse.from(itemRepository.save(item));
+    }
+    @Transactional
+    public ItemResponse startShipping(UUID itemId) {
+        Item item = findById(itemId);
+
+        if (item.getStatus() != Item.Status.SHIPPING_REQUESTED) {
+            throw new BidVibeException(ErrorCode.ITEM_NOT_AVAILABLE);
+        }
+
+        item.setStatus(Item.Status.SHIPPING_IN_PROGRESS);
+        return ItemResponse.from(itemRepository.save(item));
+    }
+
     /** POST /api/items/confirm-receipt – xác nhận nhận đồ thật, kết thúc vòng đời trên sàn */
     @Transactional
     public ItemResponse confirmReceipt(UUID userId, UUID itemId) {

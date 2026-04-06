@@ -62,6 +62,11 @@ public class AdminItemController {
         return ResponseEntity.ok(ApiResponse.ok(
                 itemService.approveItem(id, req.rarity(), req.tags())));
     }
+    // PATCH /api/admin/items/{id}/start-shipping
+    @PatchMapping("/{id}/start-shipping")
+    public ResponseEntity<ApiResponse<ItemResponse>> startShipping(@PathVariable UUID id) {
+        return ResponseEntity.ok(ApiResponse.ok(itemService.startShipping(id)));
+    }
 
     record ApproveItemBody(Item.Rarity rarity, List<String> tags) {}
 }

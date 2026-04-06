@@ -24,7 +24,14 @@ public class Item {
     }
 
     public enum Status {
-        PENDING, APPROVED, IN_AUCTION, IN_INVENTORY, SHIPPED, REJECTED
+        PENDING,
+        APPROVED,
+        IN_AUCTION,
+        IN_INVENTORY,          // vừa thắng đấu giá, nằm trong kho
+        SHIPPING_REQUESTED,    // user đã bấm yêu cầu giao hàng
+        SHIPPING_IN_PROGRESS,  // admin đã xử lý, đang giao hàng
+        SHIPPED,               // user đã nhận hàng
+        REJECTED
     }
 
     @Id

@@ -66,6 +66,14 @@ public class ItemController {
         return ResponseEntity.ok(ApiResponse.ok(itemService.confirmReceipt(currentUser.getId(), id)));
     }
 
+    // PATCH /api/items/{id}/request-shipping
+    @PatchMapping("/{id}/request-shipping")
+    public ResponseEntity<ApiResponse<ItemResponse>> requestShipping(
+            @AuthenticationPrincipal User currentUser,
+            @PathVariable UUID id) {
+        return ResponseEntity.ok(ApiResponse.ok(itemService.requestShipping(currentUser.getId(), id)));
+    }
+
     // DELETE /api/items/{id}
     @DeleteMapping("/{id}")
     public ResponseEntity<ApiResponse<Void>> deleteRejectedItem(

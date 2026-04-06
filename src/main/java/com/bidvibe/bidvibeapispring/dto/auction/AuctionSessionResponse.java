@@ -23,6 +23,7 @@ public class AuctionSessionResponse {
     private String title;
     private AuctionSession.Type type;
     private Instant startTime;
+    private Instant createdAt;
     private AuctionSession.Status status;
 
     // ------------------------------------------------------------------
@@ -35,6 +36,7 @@ public class AuctionSessionResponse {
                 .title(session.getTitle())
                 .type(session.getType())
                 .startTime(session.getStartTime())
+                .createdAt(session.getCreatedAt())
                 .status(session.getStatus())
                 .build();
     }

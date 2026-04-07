@@ -39,8 +39,8 @@ public interface TransactionRepository extends JpaRepository<Transaction, UUID> 
     @Query("""
             SELECT t FROM Transaction t
             WHERE t.wallet.id = :walletId
-              AND (:type IS NULL OR t.type = :type)
-              AND (:status IS NULL OR t.status = :status)
+                                                        AND t.type = COALESCE(:type, t.type)
+                                                        AND t.status = COALESCE(:status, t.status)
             ORDER BY t.createdAt DESC
             """)
     Page<Transaction> findByWalletFiltered(
@@ -69,11 +69,18 @@ public interface TransactionRepository extends JpaRepository<Transaction, UUID> 
     List<Transaction> findUnresolvedBidLocks(@Param("userId") UUID userId);
 
     /** Admin – danh sách toàn bộ giao dịch, lọc tuỳ chọn theo type/status. */
-    @Query("""
+    @Query(value = """
             SELECT t FROM Transaction t
-            WHERE (:type IS NULL OR t.type = :type)
-              AND (:status IS NULL OR t.status = :status)
+            JOIN FETCH t.wallet w
+            JOIN FETCH w.user u
+            WHERE t.type = COALESCE(:type, t.type)
+              AND t.status = COALESCE(:status, t.status)
             ORDER BY t.createdAt DESC
+            """,
+           countQuery = """
+            SELECT COUNT(t) FROM Transaction t
+            WHERE t.type = COALESCE(:type, t.type)
+              AND t.status = COALESCE(:status, t.status)
             """)
     Page<Transaction> findAllFiltered(
             @Param("type") Transaction.Type type,

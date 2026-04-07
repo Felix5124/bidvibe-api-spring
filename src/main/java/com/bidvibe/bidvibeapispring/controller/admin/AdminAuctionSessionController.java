@@ -94,7 +94,9 @@ public class AdminAuctionSessionController {
     // POST /api/admin/sessions/{id}/start
     @PostMapping("/api/admin/sessions/{id}/start")
     public ResponseEntity<ApiResponse<AuctionSessionResponse>> activateSession(@PathVariable UUID id) {
-        return ResponseEntity.ok(ApiResponse.ok(auctionSessionService.activateSession(id)));
+        var result = auctionSessionService.activateSession(id);
+        auctionService.startFirstWaitingAuction(id);
+        return ResponseEntity.ok(ApiResponse.ok(result));
     }
 
     // POST /api/admin/sessions/{id}/pause
@@ -106,7 +108,9 @@ public class AdminAuctionSessionController {
     // POST /api/admin/sessions/{id}/resume
     @PostMapping("/api/admin/sessions/{id}/resume")
     public ResponseEntity<ApiResponse<AuctionSessionResponse>> resumeSession(@PathVariable UUID id) {
-        return ResponseEntity.ok(ApiResponse.ok(auctionSessionService.resumeSession(id)));
+        var result = auctionSessionService.resumeSession(id);
+        auctionService.startFirstWaitingAuction(id);
+        return ResponseEntity.ok(ApiResponse.ok(result));
     }
 
     // POST /api/admin/sessions/{id}/stop
@@ -117,8 +121,10 @@ public class AdminAuctionSessionController {
 
     // POST /api/admin/auctions/{id}/reset-timer
     @PostMapping("/api/admin/auctions/{id}/reset-timer")
-    public ResponseEntity<ApiResponse<AuctionResponse>> resetAuctionTimer(@PathVariable UUID id) {
-        return ResponseEntity.ok(ApiResponse.ok(auctionService.resetAuctionTimer(id)));
+    public ResponseEntity<ApiResponse<AuctionResponse>> resetAuctionTimer(
+            @PathVariable UUID id,
+            @RequestParam(required = false) Integer minutes) {
+        return ResponseEntity.ok(ApiResponse.ok(auctionService.resetAuctionTimer(id, minutes)));
     }
 
     // DELETE /api/admin/auctions/{auctionId}/bids/{bidId}

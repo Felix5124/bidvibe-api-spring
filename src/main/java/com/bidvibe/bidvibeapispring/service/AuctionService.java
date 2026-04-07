@@ -15,6 +15,7 @@ import com.bidvibe.bidvibeapispring.entity.User;
 import com.bidvibe.bidvibeapispring.exception.BidVibeException;
 import com.bidvibe.bidvibeapispring.repository.AuctionRepository;
 import com.bidvibe.bidvibeapispring.repository.BidRepository;
+import com.bidvibe.bidvibeapispring.repository.ItemRepository;
 import com.bidvibe.bidvibeapispring.repository.WatchlistRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -45,6 +46,7 @@ public class AuctionService {
 
     private final AuctionRepository auctionRepository;
     private final BidRepository bidRepository;
+    private final ItemRepository itemRepository;
     private final WatchlistRepository watchlistRepository;
     private final AuctionSessionService sessionService;
     private final ItemService itemService;
@@ -123,8 +125,7 @@ public class AuctionService {
 
         // English auction: endTime = now + 2 phút
         if (auction.getSession().getType() == AuctionSession.Type.ENGLISH) {
-            auction.setEndTime(
-                    Instant.now().plusSeconds(AppConstants.ENGLISH_AUCTION_DURATION_SECONDS));
+            auction.setEndTime(Instant.now().plusSeconds(AppConstants.ENGLISH_AUCTION_DURATION_SECONDS));
         }
         auctionRepository.save(auction);
 
@@ -159,6 +160,7 @@ public class AuctionService {
     /**
      * Kết thúc auction: xác định winner, chuyển item, thanh toán.
      * Gọi từ Admin hoặc Scheduler khi hết giờ.
+     * Nếu không có ai đấu giá, item được trả về kho người bán.
      */
     @Transactional
     public void endAuction(Auction auction) {
@@ -174,7 +176,7 @@ public class AuctionService {
         // Persist status immediately — ensures auction leaves ACTIVE even if payment fails
         auctionRepository.save(a);
 
-        bidRepository.findHighestBidInAuction(a.getId()).ifPresent(winningBid -> {
+        bidRepository.findHighestBidInAuction(a.getId()).ifPresentOrElse(winningBid -> {
             try {
                 User winner = winningBid.getUser();
                 a.setWinner(winner);
@@ -202,9 +204,82 @@ public class AuctionService {
             } catch (Exception e) {
                 log.error("[endAuction] Lỗi xử lý thanh toán cho auction {}: {}", a.getId(), e.getMessage(), e);
             }
+        }, () -> {
+            // Không có ai đấu giá - trả item về trạng thái APPROVED để Admin xếp lại phiên khác
+            log.info("[endAuction] Auction {} kết thúc không có người đấu giá. Trả item về trạng thái APPROVED.", a.getId());
+            Item item = a.getItem();
+            item.setStatus(Item.Status.APPROVED);
+            item.setCurrentOwner(item.getSeller());
+            itemRepository.save(item);
+
+            // Thông báo cho người bán
+            notificationService.sendNotification(
+                    item.getSeller(),
+                    "Phiên đấu giá kết thúc không có người mua",
+                    "Vật phẩm \"" + item.getName() + "\" đã kết thúc phiên đấu giá mà không có ai đặt giá. " +
+                            "Hệ thống đã chuyển vật phẩm về trạng thái Đã duyệt để quản trị viên xếp vào phiên đấu giá tiếp theo.",
+                    com.bidvibe.bidvibeapispring.dto.ws.NotificationPayload.NotificationType.SYSTEM,
+                    a.getId());
         });
 
         broadcastAuctionUpdate(a);
+
+        // Với đấu giá tuần tự trong một phiên: kết thúc phòng hiện tại -> mở phòng WAITING kế tiếp.
+        // Nếu không còn phòng WAITING thì đóng phiên.
+        startNextWaitingAuctionOrComplete(a.getSession().getId());
+    }
+
+    /**
+     * Khi phiên vừa được ACTIVE: tự động mở phòng WAITING đầu tiên (nếu có).
+     */
+    @Transactional
+    public void startFirstWaitingAuction(UUID sessionId) {
+        AuctionSession session = sessionService.findById(sessionId);
+        if (session.getStatus() != AuctionSession.Status.ACTIVE) {
+            return;
+        }
+
+        // Tránh mở chồng nếu đã có phòng ACTIVE.
+        if (auctionRepository.findBySessionIdAndStatus(sessionId, Auction.Status.ACTIVE).isPresent()) {
+            return;
+        }
+
+        auctionRepository.findNextWaitingInSession(sessionId)
+                .ifPresent(this::startAuction);
+    }
+
+    /**
+     * Kết thúc một phòng rồi tự động mở phòng kế tiếp.
+     * Nếu không còn phòng WAITING thì chuyển phiên sang COMPLETED.
+     */
+    @Transactional
+    public void startNextWaitingAuctionOrComplete(UUID sessionId) {
+        AuctionSession session = sessionService.findById(sessionId);
+        if (session.getStatus() != AuctionSession.Status.ACTIVE) {
+            return;
+        }
+
+        if (auctionRepository.findBySessionIdAndStatus(sessionId, Auction.Status.ACTIVE).isPresent()) {
+            return;
+        }
+
+        auctionRepository.findNextWaitingInSession(sessionId)
+            .ifPresentOrElse(
+                nextWaiting -> {
+                    var latestEnded = auctionRepository.findTopBySessionIdAndStatusOrderByOrderIndexDesc(
+                        sessionId,
+                        Auction.Status.ENDED
+                    );
+                    if (latestEnded.isPresent() && latestEnded.get().getEndTime() != null) {
+                    long elapsed = Instant.now().getEpochSecond() - latestEnded.get().getEndTime().getEpochSecond();
+                    if (elapsed < AppConstants.BREAK_BETWEEN_ITEMS_SECONDS) {
+                        return;
+                    }
+                    }
+                    startAuction(nextWaiting);
+                },
+                () -> sessionService.completeSession(sessionId)
+            );
     }
 
     private void cancelAuction(Auction auction) {
@@ -249,10 +324,26 @@ public class AuctionService {
 
     /** Admin reset đồng hồ của một auction. */
     @Transactional
-    public AuctionResponse resetAuctionTimer(UUID auctionId) {
+    public AuctionResponse resetAuctionTimer(UUID auctionId, Integer minutes) {
         Auction auction = findById(auctionId);
-        auction.setEndTime(Instant.now().plusSeconds(
-                auction.getDurationSeconds() != null ? auction.getDurationSeconds() : AppConstants.ENGLISH_AUCTION_DURATION_SECONDS));
+        int incrementSeconds = minutes != null
+                ? minutes * 60
+                : (auction.getDurationSeconds() != null
+                ? auction.getDurationSeconds()
+            : AppConstants.MIN_AUCTION_DURATION_SECONDS);
+
+        if (incrementSeconds < AppConstants.MIN_AUCTION_DURATION_SECONDS) {
+            throw new BidVibeException(ErrorCode.AUCTION_END_TIME_TOO_EARLY);
+        }
+
+        Instant now = Instant.now();
+        Instant baseTime = (auction.getEndTime() != null && auction.getEndTime().isAfter(now))
+                ? auction.getEndTime()
+                : now;
+        Instant proposedEndTime = baseTime.plusSeconds(incrementSeconds);
+
+        auction.setDurationSeconds(incrementSeconds);
+        auction.setEndTime(proposedEndTime);
         return AuctionResponse.from(auctionRepository.save(auction));
     }
 
@@ -310,11 +401,12 @@ public class AuctionService {
             throw new BidVibeException(ErrorCode.BID_NOT_FOUND);
         }
 
-        // Hoàn tiền locked cho user có bid bị xóa
-        walletService.unlockFunds(bid.getUser().getId(), bid.getAmount());
+        User affectedUser = bid.getUser();
+        BigDecimal bidAmount = bid.getAmount();
+
+        walletService.unlockFunds(affectedUser.getId(), bidAmount);
         bidRepository.delete(bid);
 
-        // Tính lại currentPrice và winner từ bid cao nhất còn lại
         bidRepository.findHighestBidInAuction(auctionId).ifPresentOrElse(highest -> {
             auction.setCurrentPrice(highest.getAmount());
             auction.setWinner(highest.getUser());
@@ -324,6 +416,15 @@ public class AuctionService {
         });
 
         auctionRepository.save(auction);
+
+        notificationService.sendNotification(
+                affectedUser,
+                "Lượt đặt giá đã bị xóa",
+                "Lượt đặt giá " + bidAmount.toPlainString() + " VND của bạn trong phiên đấu giá \"" 
+                        + auction.getItem().getName() + "\" đã bị quản trị viên xóa.",
+                com.bidvibe.bidvibeapispring.dto.ws.NotificationPayload.NotificationType.SYSTEM,
+                auction.getId());
+
         broadcastAuctionUpdate(auction);
     }
 }

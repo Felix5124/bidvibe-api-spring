@@ -11,28 +11,45 @@ import java.util.UUID;
 @Repository
 public interface AuctionSessionRepository extends JpaRepository<AuctionSession, UUID> {
 
-    /** Danh sách phiên theo trạng thái (vd: SCHEDULED, ACTIVE). */
-    List<AuctionSession> findByStatus(AuctionSession.Status status);
+        /** Danh sách phiên theo trạng thái (vd: SCHEDULED, ACTIVE). */
+        List<AuctionSession> findByStatus(AuctionSession.Status status);
 
-    /** Tìm phiên theo loại hình đấu giá. */
-    List<AuctionSession> findByType(AuctionSession.Type type);
+        /** Tìm phiên theo loại hình đấu giá. */
+        List<AuctionSession> findByType(AuctionSession.Type type);
 
-    /** Tìm các phiên được lên lịch sau thời điểm nhất định. */
-    List<AuctionSession> findByStatusAndStartTimeAfter(AuctionSession.Status status, Instant after);
+        /** Tìm các phiên được lên lịch sau thời điểm nhất định. */
+        List<AuctionSession> findByStatusAndStartTimeAfter(AuctionSession.Status status, Instant after);
 
-    /** Tìm phiên đang ACTIVE theo loại – dùng khi Admin điều hành phiên. */
-    List<AuctionSession> findByStatusAndType(AuctionSession.Status status, AuctionSession.Type type);
+        /** Tìm phiên đang ACTIVE theo loại – dùng khi Admin điều hành phiên. */
+        List<AuctionSession> findByStatusAndType(AuctionSession.Status status, AuctionSession.Type type);
 
-    /** Danh sách phiên có lọc + phân trang (public API GET /api/sessions). */
-    @org.springframework.data.jpa.repository.Query("""
-            SELECT s FROM AuctionSession s
-            WHERE (:status IS NULL OR s.status = :status)
-              AND (:type   IS NULL OR s.type   = :type)
-            ORDER BY s.startTime DESC
-            """)
-    org.springframework.data.domain.Page<AuctionSession> searchSessions(
-            @org.springframework.data.repository.query.Param("status") AuctionSession.Status status,
-            @org.springframework.data.repository.query.Param("type")   AuctionSession.Type type,
-            org.springframework.data.domain.Pageable pageable);
+        /** Danh sách phiên có lọc + phân trang (public API GET /api/sessions). */
+        @org.springframework.data.jpa.repository.Query("""
+                        SELECT s FROM AuctionSession s
+                                                            WHERE s.status = COALESCE(:status, s.status)
+                                                                    AND s.type = COALESCE(:type, s.type)
+                        ORDER BY s.createdAt DESC
+                        """)
+        org.springframework.data.domain.Page<AuctionSession> searchSessions(
+                        @org.springframework.data.repository.query.Param("status") AuctionSession.Status status,
+                        @org.springframework.data.repository.query.Param("type") AuctionSession.Type type,
+                        org.springframework.data.domain.Pageable pageable);
+
+        /**
+         * Public lobby sessions:
+         * - Chỉ phiên ENGLISH
+         * - Chỉ ACTIVE hoặc SCHEDULED
+         * - ACTIVE đứng trước, sau đó đến SCHEDULED gần nhất.
+         */
+        @org.springframework.data.jpa.repository.Query("""
+                        SELECT s FROM AuctionSession s
+                        WHERE s.type = 'ENGLISH'
+                          AND s.status IN ('ACTIVE', 'SCHEDULED')
+                        ORDER BY
+                          CASE WHEN s.status = 'ACTIVE' THEN 0 ELSE 1 END,
+                          s.startTime ASC,
+                          s.createdAt DESC
+                        """)
+        org.springframework.data.domain.Page<AuctionSession> findPublicLobbySessions(
+                        org.springframework.data.domain.Pageable pageable);
 }
-

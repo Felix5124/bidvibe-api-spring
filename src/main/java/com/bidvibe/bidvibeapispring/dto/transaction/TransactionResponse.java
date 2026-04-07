@@ -22,6 +22,8 @@ public class TransactionResponse {
 
     private UUID id;
     private UUID walletId;
+    private UUID userId;
+    private String userNickname;
     private Transaction.Type type;
     private BigDecimal amount;
     private Transaction.Status status;
@@ -37,6 +39,8 @@ public class TransactionResponse {
         return TransactionResponse.builder()
                 .id(tx.getId())
                 .walletId(tx.getWallet().getId())
+                .userId(tx.getWallet().getUser() != null ? tx.getWallet().getUser().getId() : null)
+                .userNickname(tx.getWallet().getUser() != null ? tx.getWallet().getUser().getNickname() : null)
                 .type(tx.getType())
                 .amount(tx.getAmount())
                 .status(tx.getStatus())

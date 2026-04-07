@@ -19,8 +19,17 @@ public interface AuctionRepository extends JpaRepository<Auction, UUID> {
     /** Tất cả auctions trong một phiên, sắp theo thứ tự. */
     List<Auction> findBySessionIdOrderByOrderIndex(UUID sessionId);
 
+    /** Tất cả auctions trong một phiên với phân trang. */
+    Page<Auction> findBySessionId(UUID sessionId, Pageable pageable);
+
+    /** Đếm tổng số vật phẩm đã được xếp vào phiên. */
+    long countBySessionId(UUID sessionId);
+
     /** Auction đang ACTIVE trong một phiên (dùng cho Real-time room). */
     Optional<Auction> findBySessionIdAndStatus(UUID sessionId, Auction.Status status);
+
+    /** Auction ENDED gần nhất theo thứ tự trong session. */
+    Optional<Auction> findTopBySessionIdAndStatusOrderByOrderIndexDesc(UUID sessionId, Auction.Status status);
 
     /**
      * Tìm auction WAITING hoặc ACTIVE của một item – dùng khi bid để lấy auction đang diễn ra.

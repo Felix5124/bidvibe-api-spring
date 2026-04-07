@@ -13,6 +13,7 @@ import com.bidvibe.bidvibeapispring.constant.ErrorCode;
 import com.bidvibe.bidvibeapispring.dto.item.ItemResponse;
 import com.bidvibe.bidvibeapispring.dto.item.ListItemOnMarketRequest;
 import com.bidvibe.bidvibeapispring.dto.item.SubmitItemRequest;
+import com.bidvibe.bidvibeapispring.dto.ws.NotificationPayload;
 import com.bidvibe.bidvibeapispring.entity.Item;
 import com.bidvibe.bidvibeapispring.entity.MarketListing;
 import com.bidvibe.bidvibeapispring.entity.User;
@@ -21,6 +22,7 @@ import com.bidvibe.bidvibeapispring.repository.ItemRepository;
 import com.bidvibe.bidvibeapispring.repository.MarketListingRepository;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * Xử lý nghiệp vụ Vật phẩm:
@@ -30,6 +32,7 @@ import lombok.RequiredArgsConstructor;
  * - Tìm kiếm Chợ Đen
  * - Xác nhận nhận hàng (confirm receipt)
  */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ItemService {
@@ -37,6 +40,7 @@ public class ItemService {
     private final ItemRepository itemRepository;
     private final MarketListingRepository marketListingRepository;
     private final UserService userService;
+    private final NotificationService notificationService;
 
     // ------------------------------------------------------------------
     // User – Submit item (ký gửi)
@@ -65,8 +69,9 @@ public class ItemService {
     /** GET /api/items/inventory */
     @Transactional(readOnly = true)
     public Page<ItemResponse> getInventory(UUID userId, Pageable pageable) {
+        // SỬA DÒNG NÀY: Bỏ điều kiện Item.Status.IN_INVENTORY để lấy TẤT CẢ trạng thái
         return itemRepository
-                .findByCurrentOwnerIdAndStatus(userId, Item.Status.IN_INVENTORY, pageable)
+                .findByCurrentOwnerIdOrderByCreatedAtDesc(userId, pageable)
                 .map(ItemResponse::from);
     }
 
@@ -103,6 +108,30 @@ public class ItemService {
         return ItemResponse.from(item);
     }
 
+    @Transactional
+    public ItemResponse requestShipping(UUID userId, UUID itemId) {
+        Item item = findById(itemId);
+        validateOwner(item, userId);
+
+        if (item.getStatus() != Item.Status.IN_INVENTORY) {
+            throw new BidVibeException(ErrorCode.ITEM_NOT_AVAILABLE);
+        }
+
+        item.setStatus(Item.Status.SHIPPING_REQUESTED);
+        return ItemResponse.from(itemRepository.save(item));
+    }
+    @Transactional
+    public ItemResponse startShipping(UUID itemId) {
+        Item item = findById(itemId);
+
+        if (item.getStatus() != Item.Status.SHIPPING_REQUESTED) {
+            throw new BidVibeException(ErrorCode.ITEM_NOT_AVAILABLE);
+        }
+
+        item.setStatus(Item.Status.SHIPPING_IN_PROGRESS);
+        return ItemResponse.from(itemRepository.save(item));
+    }
+
     /** POST /api/items/confirm-receipt – xác nhận nhận đồ thật, kết thúc vòng đời trên sàn */
     @Transactional
     public ItemResponse confirmReceipt(UUID userId, UUID itemId) {
@@ -115,6 +144,19 @@ public class ItemService {
 
         item.setStatus(Item.Status.SHIPPED);
         return ItemResponse.from(itemRepository.save(item));
+    }
+
+    /** DELETE /api/items/{id} – chỉ cho phép chủ sở hữu xóa vật phẩm đã bị từ chối. */
+    @Transactional
+    public void deleteRejectedItem(UUID userId, UUID itemId) {
+        Item item = findById(itemId);
+        validateOwner(item, userId);
+
+        if (item.getStatus() != Item.Status.REJECTED) {
+            throw new BidVibeException(ErrorCode.ITEM_DELETE_NOT_ALLOWED);
+        }
+
+        itemRepository.delete(item);
     }
 
     // ------------------------------------------------------------------
@@ -151,7 +193,18 @@ public class ItemService {
             throw new BidVibeException(ErrorCode.ITEM_NOT_AVAILABLE);
         }
         item.setStatus(Item.Status.REJECTED);
-        return ItemResponse.from(itemRepository.save(item));
+        Item saved = itemRepository.save(item);
+        
+        // Gửi thông báo cho user
+        notificationService.sendNotification(
+                item.getSeller(),
+                "Vật phẩm bị từ chối",
+                "Vật phẩm '" + item.getName() + "' đã bị từ chối. Lý do: " + (reason != null ? reason : "Không đạt tiêu chuẩn duyệt"),
+                NotificationPayload.NotificationType.ITEM_REJECTED,
+                itemId
+        );
+        
+        return ItemResponse.from(saved);
     }
 
     /**
@@ -163,10 +216,33 @@ public class ItemService {
         if (item.getStatus() != Item.Status.PENDING) {
             throw new BidVibeException(ErrorCode.ITEM_NOT_AVAILABLE);
         }
-        if (tags != null) item.setTags(tags);
-        item.setRarity(rarity);
+        if (tags != null) {
+            item.setTags(tags);
+        }
+        if (rarity != null) {
+            item.setRarity(rarity);
+        }
         item.setStatus(Item.Status.APPROVED);
-        return ItemResponse.from(itemRepository.save(item));
+        Item saved = itemRepository.save(item);
+        
+        // Gửi thông báo cho user (nếu có seller)
+        try {
+            User seller = saved.getSeller();
+            if (seller != null) {
+                notificationService.sendNotification(
+                        seller,
+                        "Vật phẩm đã được duyệt",
+                        "Vật phẩm '" + saved.getName() + "' đã được duyệt và sẵn sàng để đưa lên phiên đấu giá.",
+                        NotificationPayload.NotificationType.ITEM_APPROVED,
+                        itemId
+                );
+            }
+        } catch (Exception e) {
+            // Log lỗi nhưng không fail transaction
+            log.warn("Failed to send notification for approved item {}: {}", itemId, e.getMessage());
+        }
+        
+        return ItemResponse.from(saved);
     }
 
     /**
@@ -176,11 +252,26 @@ public class ItemService {
     @Transactional
     public Item approveAndMoveToAuction(UUID itemId, Item.Rarity rarity) {
         Item item = findById(itemId);
-        if (item.getStatus() != Item.Status.PENDING) {
+        if (item.getStatus() != Item.Status.PENDING && item.getStatus() != Item.Status.APPROVED) {
             throw new BidVibeException(ErrorCode.ITEM_NOT_AVAILABLE);
         }
-        item.setRarity(rarity);
+        if (rarity != null) {
+            item.setRarity(rarity);
+        }
         item.setStatus(Item.Status.IN_AUCTION);
+        return itemRepository.save(item);
+    }
+
+    /**
+     * Trả vật phẩm từ trạng thái IN_AUCTION về APPROVED khi gỡ khỏi phiên chưa chạy.
+     */
+    @Transactional
+    public Item moveBackToApprovedFromAuction(UUID itemId) {
+        Item item = findById(itemId);
+        if (item.getStatus() != Item.Status.IN_AUCTION) {
+            throw new BidVibeException(ErrorCode.ITEM_NOT_AVAILABLE);
+        }
+        item.setStatus(Item.Status.APPROVED);
         return itemRepository.save(item);
     }
 

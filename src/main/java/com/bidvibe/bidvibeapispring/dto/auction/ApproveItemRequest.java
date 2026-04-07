@@ -28,8 +28,11 @@ public class ApproveItemRequest {
     @NotNull(message = "Độ hiếm không được để trống")
     private Item.Rarity rarity;
 
-    /** ID phiên đấu giá sẽ gán vật phẩm vào. */
-    @NotNull(message = "ID phiên đấu giá không được để trống")
+    /**
+     * ID phiên đấu giá sẽ gán vật phẩm vào.
+     * Với endpoint thêm vào phiên theo path /api/admin/sessions/{id}/auctions,
+     * giá trị này được set từ path variable tại controller nên không bắt buộc trong body.
+     */
     private UUID sessionId;
 
     @NotNull(message = "Giá khởi điểm không được để trống")

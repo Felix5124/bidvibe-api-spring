@@ -18,6 +18,8 @@ import com.bidvibe.bidvibeapispring.entity.User;
 import com.bidvibe.bidvibeapispring.exception.BidVibeException;
 import com.bidvibe.bidvibeapispring.repository.RatingRepository;
 import com.bidvibe.bidvibeapispring.repository.UserRepository;
+import com.bidvibe.bidvibeapispring.repository.WalletRepository;
+import com.bidvibe.bidvibeapispring.entity.Wallet;
 
 import lombok.RequiredArgsConstructor;
 
@@ -33,7 +35,7 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final RatingRepository ratingRepository;
-    private final WsEventPublisher wsEventPublisher;
+    private final WalletRepository walletRepository;
 
     // ------------------------------------------------------------------
     // Public API
@@ -69,24 +71,33 @@ public class UserService {
      * Tìm hoặc tạo User từ claims Supabase JWT.
      * {@code sub} là UUID duy nhất của user trong Supabase Auth.
      * {@code email} dùng để tra cứu User trong database nội bộ.
+     * {@code avatarUrl} là URL avatar từ Google OAuth (nếu có).
      * Gọi từ JwtAuthFilter mỗi request cần xác thực.
      */
     @Transactional
-    public User findOrCreate(String sub, String email) {
-        return userRepository.findByEmail(email)
-                .orElseGet(() -> {
-                    // Derive a safe default nickname from the email prefix
-                    String defaultNickname = email.contains("@")
-                            ? email.substring(0, email.indexOf('@'))
-                            : email;
-                    return userRepository.save(
-                            User.builder()
-                                    .email(email)
-                                    .nickname(defaultNickname)
-                                    .role(User.Role.USER)
-                                    .build()
-                    );
-                });
+    public User findOrCreate(String sub, String email, String avatarUrl) {
+        User user = userRepository.findByEmail(email)
+            .orElseGet(() -> {
+                String defaultNickname = email.contains("@")
+                    ? email.substring(0, email.indexOf('@'))
+                    : email;
+                
+                User.UserBuilder builder = User.builder()
+                    .email(email)
+                    .nickname(defaultNickname)
+                    .role(User.Role.USER);
+                
+                if (avatarUrl != null && !avatarUrl.isBlank()) {
+                    builder.avatarUrl(avatarUrl);
+                }
+                
+                return userRepository.save(builder.build());
+            });
+
+        walletRepository.findByUserId(user.getId())
+            .orElseGet(() -> walletRepository.save(Wallet.builder().user(user).build()));
+
+        return user;
     }
 
     /**
@@ -143,7 +154,15 @@ public class UserService {
     public Page<UserProfileResponse> adminListUsers(String search, User.Role role,
                                                      Boolean isBanned, Boolean isMuted,
                                                      Pageable pageable) {
-        return userRepository.searchUsers(search, role, isBanned, isMuted, pageable)
+        String normalizedSearch = (search == null || search.isBlank()) ? null : search.trim();
+
+        // Fast path: no filters -> use default paging query to avoid optional-parameter edge cases.
+        if (normalizedSearch == null && role == null && isBanned == null && isMuted == null) {
+            return userRepository.findAll(pageable)
+                .map(UserProfileResponse::from);
+        }
+
+        return userRepository.searchUsers(normalizedSearch, role, isBanned, isMuted, pageable)
                 .map(UserProfileResponse::from);
     }
 
@@ -187,13 +206,5 @@ public class UserService {
         user.setBanned(false);
         user.setBannedAt(null);
         userRepository.save(user);
-    }
-
-    /**
-     * POST /api/admin/users/{id}/kick – ngắt kết nối WebSocket của user khỏi một phòng đấu giá.
-     * Gửi tín hiệu WS; client tự disconnect. User vẫn có thể reconnect.
-     */
-    public void kickUser(UUID userId, UUID auctionId) {
-        wsEventPublisher.publishKick(userId, auctionId);
     }
 }

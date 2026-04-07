@@ -54,7 +54,14 @@ public class AnalyticsService {
                 .orElseThrow(() -> new BidVibeException(ErrorCode.ITEM_NOT_FOUND));
 
         var auctions = auctionRepository.findByItemIdOrderByEndTimeDesc(itemId);
-        if (auctions.isEmpty()) throw new BidVibeException(ErrorCode.AUCTION_NOT_FOUND);
+        if (auctions.isEmpty()) {
+            // Item exists but has never been in an auction yet: return an empty history instead of 404.
+            return PriceHistoryResponse.builder()
+                    .itemId(itemId)
+                    .itemName(item.getName())
+                    .pricePoints(List.of())
+                    .build();
+        }
         var auction = auctions.get(0);
 
         List<Bid> bids = bidRepository.findByAuctionIdOrderByBidTimeDesc(auction.getId());
@@ -92,7 +99,7 @@ public class AnalyticsService {
                 .getTotalElements();
 
         BigDecimal totalRevenue = transactionRepository
-                .findAllFiltered(Transaction.Type.FINAL_PAYMENT, Transaction.Status.COMPLETED,
+                .findAllFiltered(Transaction.Type.PLATFORM_FEE, Transaction.Status.COMPLETED,
                         org.springframework.data.domain.Pageable.unpaged())
                 .stream()
                 .map(Transaction::getAmount)
@@ -124,7 +131,7 @@ public class AnalyticsService {
     @Transactional(readOnly = true)
     public AdminRevenueResponse getAdminRevenue(LocalDate from, LocalDate to) {
         var allPayments = transactionRepository
-                .findAllFiltered(Transaction.Type.FINAL_PAYMENT, Transaction.Status.COMPLETED,
+                .findAllFiltered(Transaction.Type.PLATFORM_FEE, Transaction.Status.COMPLETED,
                         org.springframework.data.domain.Pageable.unpaged())
                 .getContent();
 
